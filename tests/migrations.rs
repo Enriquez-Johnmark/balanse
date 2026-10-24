@@ -17,3 +17,13 @@ async fn one_migrator_creates_the_engine_and_product_tables(pool: PgPool) {
 
     assert_eq!(tables, ["accounts", "businesses", "outbox_messages"]);
 }
+
+#[test]
+fn no_product_migration_shares_a_version_with_the_engines() {
+    let mut versions: Vec<i64> = balanse::MIGRATOR.iter().map(|m| m.version).collect();
+    let count = versions.len();
+    versions.sort_unstable();
+    versions.dedup();
+
+    assert_eq!(versions.len(), count, "two migrations share a version");
+}

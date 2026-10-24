@@ -11,7 +11,9 @@
 //!
 //! At sending time only, it must also fall on a weekday between 08:00 and
 //! 20:00 Manila time (C5) and within the cap (C4). Those make it wait, not
-//! fail: the engine tries again shortly.
+//! fail: the engine holds it, still approved, until the earliest moment
+//! both allow. Its Draft deadline was for approval only, so waiting never
+//! expires it (C5).
 //!
 //! Any other message must be an account email (a login link) to a member of
 //! the Business.
@@ -20,7 +22,7 @@ use std::sync::Arc;
 
 use sqlx::PgPool;
 use time::macros::time;
-use time::{Duration, Weekday};
+use time::{Date, Duration, OffsetDateTime, Weekday};
 
 use super::reminders::{MANILA, open_debts, sent_since};
 use super::schedule::cap_allows;
@@ -104,25 +106,25 @@ impl BalanseChecks {
             return Ok(());
         };
         let now = clock.now();
-        let local = now.to_offset(MANILA);
-        let weekday = !matches!(local.weekday(), Weekday::Saturday | Weekday::Sunday);
-        if !weekday || local.time() < time!(08:00) || local.time() >= time!(20:00) {
-            return Err(CheckFailed::Unavailable(
-                "reminders go out on weekdays, 08:00 to 20:00 Manila time".to_owned(),
-            ));
-        }
         let sent_on: Vec<_> = sent_since(&self.pool, tenant, debtor, now - Duration::days(7))
             .await
             .map_err(unavailable)?
             .into_iter()
             .map(|at| at.to_offset(MANILA).date())
             .collect();
-        if !cap_allows(local.date(), &sent_on) {
-            return Err(CheckFailed::Unavailable(
-                "the Debtor had a message recently; this one waits".to_owned(),
-            ));
+        let until = earliest_send(now, &sent_on);
+        if until <= now {
+            return Ok(());
         }
-        Ok(())
+        let reason = if cap_allows(now.to_offset(MANILA).date(), &sent_on) {
+            "reminders go out on weekdays, 08:00 to 20:00 Manila time"
+        } else {
+            "the Debtor had a message recently; this one waits"
+        };
+        Err(CheckFailed::NotUntil {
+            until,
+            reason: reason.to_owned(),
+        })
     }
 
     /// A message that isn't a reminder: only an account email to one of the
@@ -158,3 +160,23 @@ impl PreSendCheck for BalanseChecks {
         Box::pin(self.run(tenant, id, email))
     }
 }
+
+/// The earliest moment from `now` at which a reminder may go out: a weekday
+/// between 08:00 and 20:00 Manila time (C5) on which the cap allows it,
+/// given the Manila dates of messages already sent (C4).
+fn earliest_send(now: OffsetDateTime, sent_on: &[Date]) -> OffsetDateTime {
+    let local = now.to_offset(MANILA);
+    (0..=CAP_HORIZON_DAYS)
+        .map(|days| local.date() + Duration::days(days))
+        .filter(|day| !matches!(day.weekday(), Weekday::Saturday | Weekday::Sunday))
+        .filter(|day| cap_allows(*day, sent_on))
+        .find_map(|day| {
+            let opens = day.with_time(time!(08:00)).assume_offset(MANILA);
+            let closes = day.with_time(time!(20:00)).assume_offset(MANILA);
+            (local < closes).then(|| opens.max(local))
+        })
+        .unwrap_or(local + Duration::days(1))
+}
+
+/// The cap looks back 7 days, so within two weeks some weekday allows it.
+const CAP_HORIZON_DAYS: i64 = 14;

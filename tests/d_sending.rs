@@ -34,7 +34,13 @@ struct World {
 /// A Business with one Debtor, one overdue Debt and its first reminder
 /// drafted (Monday 2026-11-02, 09:00 Manila).
 async fn world(pool: &PgPool) -> (World, MessageId) {
+    world_at(pool, Duration::ZERO).await
+}
+
+/// [`world`], with the reminder drafted `shift` from Monday 09:00.
+async fn world_at(pool: &PgPool, shift: Duration) -> (World, MessageId) {
     let clock = clock();
+    clock.advance(shift);
     let business = business(pool, &clock).await;
     let debtor = Debtors::new(pool.clone(), clock.clone())
         .create(
@@ -282,4 +288,25 @@ async fn c7_an_approved_reminder_isnt_sent_once_the_debtor_is_paused(pool: PgPoo
         .unwrap();
 
     assert!(world.drain(&pool).await.is_empty());
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn c5_an_approved_reminder_still_goes_out_after_its_draft_deadline(pool: PgPool) {
+    // Drafted Monday 07:00, so unapproved it would expire Thursday 07:00,
+    // an hour before Thursday's sending hours begin.
+    let (world, id) = world_at(&pool, -Duration::hours(2)).await;
+    world.clock.advance(Duration::hours(62)); // Wednesday 21:00 Manila
+    world.approve(&pool, id).await.unwrap();
+    let at_night = world.drain(&pool).await.len();
+    world.clock.advance(Duration::hours(11)); // Thursday 08:00 Manila
+    let master = MasterKey::from_hex(&"ab".repeat(32)).unwrap();
+    let replies = ReplyAddresses::new(Arc::new(Signer::new(&master, "test replies")), "reply.balanse.test");
+    Scheduler::new(pool.clone(), world.clock.clone(), replies)
+        .run()
+        .await
+        .unwrap();
+
+    let in_the_morning = world.drain(&pool).await.len();
+
+    assert_eq!((at_night, in_the_morning), (0, 1));
 }

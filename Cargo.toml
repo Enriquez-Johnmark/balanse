@@ -17,7 +17,7 @@ axum = "0.8.9"
 dotenvy = "0.15.7"
 # The engine: draft, approve, send exactly once, stop on reply, track.
 # Pinned to the commit tagged v0.3.0.
-nudgewright = { version = "0.3.0", git = "https://github.com/Enriquez-Johnmark/nudgewright", rev = "13bd417637d06b03d153f8308845c013075629ba" }
+nudgewright = { version = "0.4.0", git = "https://github.com/Enriquez-Johnmark/nudgewright", rev = "4f09f082450ce9011590443b6f9887c3322164b0" }
 reqwest = { version = "0.13.5", features = ["json"] }
 secrecy = "0.10.3"
 serde = { version = "1.0", features = ["derive"] }

@@ -297,7 +297,7 @@ impl Scheduler {
         let mut tx = self.pool.begin().await?;
         let message = self
             .outbox
-            .create_draft_in(&mut tx, c.business, &email, Some(now + DRAFT_LIFETIME))
+            .create_draft_to_approve_by_in(&mut tx, c.business, &email, now + DRAFT_LIFETIME)
             .await?;
         sqlx::query!(
             "insert into reminders (id, tenant_id, debtor_id, cycle_start, step, message_id, created_at)

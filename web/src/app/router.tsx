@@ -34,6 +34,12 @@ export const router = createBrowserRouter([
           Component: (await import("@/features/debtors/new-debtor-page")).NewDebtorPage,
         }),
       },
+      {
+        path: "debtors/:id",
+        lazy: async () => ({
+          Component: (await import("@/features/debtors/debtor-page")).DebtorPage,
+        }),
+      },
       { path: "*", Component: NotFoundPage },
     ],
   },

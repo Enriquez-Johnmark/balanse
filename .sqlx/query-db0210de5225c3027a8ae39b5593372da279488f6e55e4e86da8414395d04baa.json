@@ -1,0 +1,136 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select m.id, r.debtor_id, d.business_name, r.step, m.to_address, m.from_name, m.reply_to, m.subject,\n                m.body_text, m.expires_at\n         from reminders r\n         join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id\n         join debtors d on d.id = r.debtor_id and d.tenant_id = r.tenant_id\n         where r.tenant_id = $1 and m.status = 'draft'\n         order by m.created_at, m.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "debtor_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "debtor_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "business_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "business_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "step",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "step"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "to_address",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "to_address"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "from_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "from_name"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "reply_to",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "reply_to"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "subject"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "body_text",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "body_text"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "db0210de5225c3027a8ae39b5593372da279488f6e55e4e86da8414395d04baa"
+}

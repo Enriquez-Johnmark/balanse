@@ -27,6 +27,7 @@ use crate::balanse::debts::Debts;
 use crate::balanse::outcomes::Outcomes;
 use crate::engine::accounts::{Logins, Signups};
 use crate::engine::clock::Clock;
+use crate::engine::outbox::Outbox;
 
 /// The session cookie's name.
 const SESSION_COOKIE: &str = "balanse_session";
@@ -41,6 +42,7 @@ pub struct AppState {
     debtors: Debtors,
     debts: Debts,
     outcomes: Outcomes,
+    outbox: Outbox,
     /// Where links in emails point, e.g. `https://app.balanseapp.com`.
     base_url: String,
     /// `scheme://host[:port]` of the base URL; posts must come from it.
@@ -65,6 +67,7 @@ impl AppState {
             debtors: Debtors::new(pool.clone(), clock.clone()),
             debts: Debts::new(pool.clone(), clock.clone()),
             outcomes: Outcomes::new(pool.clone(), clock.clone()),
+            outbox: Outbox::new(pool.clone(), clock.clone()),
             secure_cookies: base_url.starts_with("https://"),
             wake_sender: Arc::new(Notify::new()),
             pool,

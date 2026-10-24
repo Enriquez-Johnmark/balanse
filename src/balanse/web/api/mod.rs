@@ -8,6 +8,7 @@
 //! - Errors are JSON ([`ErrorBody`]) without internal details.
 
 mod debtors;
+mod drafts;
 mod login;
 mod signup;
 
@@ -28,6 +29,7 @@ use crate::engine::accounts::Session;
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
         .merge(debtors::routes())
+        .merge(drafts::routes())
         .merge(login::routes())
         .merge(signup::routes())
         .route("/api/{*rest}", any(not_found))

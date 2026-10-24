@@ -1,6 +1,6 @@
 # Balanse architecture
 
-Status: **Phase 4 in progress.** Everything under "Decided" is owner-approved, with dates. The spec is [product/spec.md](product/spec.md); the engine is [Nudgewright](https://github.com/Enriquez-Johnmark/nudgewright); the patterns reused come from [Kompleto](https://github.com/Enriquez-Johnmark/kompleto/blob/main/docs/architecture.md).
+Status: **Phase 4 complete (2026-10-24).** Everything under "Decided" is owner-approved, with dates. The spec is [product/spec.md](product/spec.md); the engine is [Nudgewright](https://github.com/Enriquez-Johnmark/nudgewright); the patterns reused come from [Kompleto](https://github.com/Enriquez-Johnmark/kompleto/blob/main/docs/architecture.md).
 
 ## Decided
 
@@ -48,4 +48,4 @@ The owner's checks of First Circle Invoice, Lista and PayMongo Invoices (brief, 
 
 ## Open
 
-- The implementation readiness gate (Phase 5).
+- The implementation readiness gate (Phase 5): awaiting the owner's "yes".

@@ -74,3 +74,65 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: EmbarkStudios/cargo-deny-action@v2
+
+  e2e:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: balanse
+          POSTGRES_PASSWORD: balanse
+          POSTGRES_DB: balanse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U balanse"
+          --health-interval 2s
+          --health-retries 30
+      mailpit:
+        image: axllent/mailpit:v1.27.11
+        ports:
+          - 8025:8025
+    env:
+      DATABASE_URL: postgres://balanse:balanse@localhost:5432/balanse
+      SQLX_OFFLINE: "true"
+      BIND_ADDR: 127.0.0.1:3000
+      PUBLIC_BASE_URL: http://127.0.0.1:3000
+      MAIL_PROVIDER: mailpit
+      MAILPIT_URL: http://localhost:8025
+      # A development key: the data here is test data.
+      MASTER_KEY: "0000000000000000000000000000000000000000000000000000000000000001"
+      WEB_DIR: web/dist
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Build the server
+        run: cargo build --locked
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Build the app
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm exec playwright install --with-deps chromium
+      - name: Start Balanse
+        run: |
+          ./target/debug/balanse migrate
+          nohup ./target/debug/balanse serve > server.log 2>&1 &
+          for _ in $(seq 1 30); do curl -sf http://127.0.0.1:3000/health && break; sleep 1; done
+      - name: Browser tests
+        working-directory: web
+        run: pnpm e2e
+      - name: Server log
+        if: failure()
+        run: cat server.log

@@ -6,6 +6,7 @@ Decisions made before this repository existed (the product family, the name, lic
 
 ## 2026-10-24
 
+- **Brief approved (Phase 2 gate).** `docs/product/brief.md` is the agreed direction for the spec: who Balanse is for, the first version, what it never does, and the kill-checks. Its open questions are settled in the spec (owner: "yes, approve the Balanse brief").
 - **First customers: B2B service businesses and agencies**, whose debtors are companies with email inboxes (45,621 formal firms, about 8,200 with 10–199 employees). Bookkeepers through Kompleto are a close second, starting with chasing their own fees. Landlords, schools, clinics and lenders are not first (owner: "go ahead please" to Round 1).
 - **Channels in the first version:** Balanse sends email itself, through the engine. For Viber, Messenger, WhatsApp and SMS it gives the owner a "copy and open" message to send from their own phone. No automated SMS, Viber or Messenger, so no engine change is needed (Round 1).
 - **How Balanse knows a debt is paid:** the owner marks it paid; a debtor's reply stops the reminders; a proof-of-payment upload only marks the debt "payment claimed" until the owner confirms, because fake GCash receipts exist. No payment-gateway integration in the first version (Round 1).

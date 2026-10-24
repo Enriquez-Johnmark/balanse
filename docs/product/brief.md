@@ -1,6 +1,6 @@
 # Balanse brief
 
-Status: **draft, 2026-10-24, awaiting the owner's "yes" (Phase 2 gate).** It turns the research ([../research/README.md](../research/README.md)) and the Round 1 decisions ([../decisions.md](../decisions.md)) into one page. Owner-approved decisions are marked **(decided)**; everything else is a recommendation or an open question for the spec.
+Status: **approved by the owner, 2026-10-24 (Phase 2 gate).** It turns the research ([../research/README.md](../research/README.md)) and the Round 1 decisions ([../decisions.md](../decisions.md)) into one page. Owner-approved decisions are marked **(decided)**; everything else is a recommendation or an open question for the spec.
 
 ## The product in one paragraph
 

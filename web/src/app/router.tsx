@@ -21,6 +21,20 @@ export const router = createBrowserRouter([
   {
     Component: AppShell,
     HydrateFallback: PageLoading,
-    children: [{ path: "*", Component: NotFoundPage }],
+    children: [
+      {
+        index: true,
+        lazy: async () => ({
+          Component: (await import("@/features/debtors/debtors-page")).DebtorsPage,
+        }),
+      },
+      {
+        path: "debtors/new",
+        lazy: async () => ({
+          Component: (await import("@/features/debtors/new-debtor-page")).NewDebtorPage,
+        }),
+      },
+      { path: "*", Component: NotFoundPage },
+    ],
   },
 ])

@@ -1,15 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/api/client"
+import { debtorKeys, draftKeys } from "@/app/query-keys"
 import type { Approval } from "@/api/generated/Approval"
 import type { Approved } from "@/api/generated/Approved"
 import type { DraftRow } from "@/api/generated/DraftRow"
 import type { Edit } from "@/api/generated/Edit"
-import { debtorKeys } from "@/features/debtors/queries"
-
-export const draftKeys = {
-  list: () => ["drafts"] as const,
-}
 
 export function useDrafts() {
   return useQuery({

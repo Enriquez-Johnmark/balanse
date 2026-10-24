@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/api/client"
+import { debtorKeys, draftKeys } from "@/app/query-keys"
 import type { Created } from "@/api/generated/Created"
 import type { DebtorPage } from "@/api/generated/DebtorPage"
 import type { DebtorRow } from "@/api/generated/DebtorRow"
@@ -8,12 +9,6 @@ import type { NewAmount } from "@/api/generated/NewAmount"
 import type { NewDebt } from "@/api/generated/NewDebt"
 import type { NewDebtor } from "@/api/generated/NewDebtor"
 import type { Outcome } from "@/api/generated/Outcome"
-
-export const debtorKeys = {
-  all: () => ["debtors"] as const,
-  list: () => [...debtorKeys.all(), "list"] as const,
-  detail: (id: string) => [...debtorKeys.all(), "detail", id] as const,
-}
 
 export function useDebtors() {
   return useQuery({
@@ -29,10 +24,16 @@ export function useDebtor(id: string) {
   })
 }
 
-/** Refreshes every page that shows Debtors after one changes. */
+/** Refreshes every page that shows Debtors after one changes, and the
+ *  Drafts: a decision cancels a Debtor's waiting reminders, and a Debt
+ *  change has them drafted again. */
 export function useRefreshDebtors() {
   const queryClient = useQueryClient()
-  return () => queryClient.invalidateQueries({ queryKey: debtorKeys.all() })
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: debtorKeys.all() }),
+      queryClient.invalidateQueries({ queryKey: draftKeys.list() }),
+    ])
 }
 
 export function useCreateDebtor() {

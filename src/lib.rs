@@ -10,6 +10,7 @@ use std::sync::LazyLock;
 use sqlx::migrate::Migrator;
 
 pub mod balanse;
+pub mod config;
 
 /// The engine, Nudgewright, pinned to a release.
 pub use nudgewright as engine;

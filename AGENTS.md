@@ -8,8 +8,8 @@ Each gate needs the owner's explicit "yes"; an approval for one phase never carr
 
 | Phase | Status |
 |---|---|
-| 1. Research | **in progress** (`docs/research/README.md`) |
-| 2. Brief: segment, channels, limits | not started |
+| 1. Research | done, verified (`docs/research/README.md`) |
+| 2. Brief: segment, channels, limits | **in progress**: Round 1 decided; brief drafted (`docs/product/brief.md`), awaiting the owner's "yes" |
 | 3. Spec & acceptance criteria | not started |
 | 4. Architecture (what moves into Loopwright, what stays here) | not started |
 | 5. Implementation readiness gate | not started |
@@ -26,6 +26,10 @@ Record every approved decision, dated, in `docs/decisions.md`, and update the su
 **In force** (full log: `docs/decisions.md`; decisions shared with the other products: Kompleto's `docs/decisions.md`):
 
 - **Balanse is next (2026-10-24):** research first, then brief, spec and readiness gate, before any code.
+- **First customers (2026-10-24):** B2B service businesses and agencies; bookkeepers through Kompleto a close second.
+- **First version (2026-10-24):** email sent by the engine plus "copy and open" for Viber, Messenger, WhatsApp and SMS; paid status from the owner, replies and proof uploads, with no payment-gateway integration.
+- **Product rules (2026-10-24):** the legal limits R1–R18 (`docs/research/legal-limits.md`) are enforced in code; above all, Balanse never touches money, never contacts anyone but the debtor, and never issues invoices, statements of account or a receivables ledger.
+- **Name and domain (2026-10-24):** Balanse, at `balanseapp.com`.
 - **Licence (2026-10-23):** all rights reserved (source readable, not reusable); only the engine, Loopwright, is open source (AGPL-3.0-only).
 - **Engine:** Loopwright at a pinned release; an engine change is made, tested and released there, never patched here.
 - **Budget:** ₱0 until pilots. No customer data goes to free LLM tiers that train on inputs, and the app never runs on a Claude subscription (API key only).

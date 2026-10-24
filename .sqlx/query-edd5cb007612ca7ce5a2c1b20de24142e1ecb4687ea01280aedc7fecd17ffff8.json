@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select r.tenant_id, r.debtor_id, d.contact_name, d.business_name as debtor_name, m.email as owner_email\n             from reminders r\n             join debtors d on d.tenant_id = r.tenant_id and d.id = r.debtor_id\n             join accounts a on a.tenant_id = r.tenant_id and a.closed_at is null\n             join account_members m on m.tenant_id = r.tenant_id and m.role = 'owner'\n             where r.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tenant_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "tenant_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "debtor_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "debtor_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "contact_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "debtor_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "business_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "owner_email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "account_members",
+            "name": "email"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "edd5cb007612ca7ce5a2c1b20de24142e1ecb4687ea01280aedc7fecd17ffff8"
+}

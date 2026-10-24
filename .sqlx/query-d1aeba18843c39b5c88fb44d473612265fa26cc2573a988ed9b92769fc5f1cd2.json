@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into replies\n                (id, tenant_id, debtor_id, reminder_id, from_address, subject, body_text, automatic, received_at,\n                 message_key)\n             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n             on conflict (tenant_id, message_key) do nothing",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d1aeba18843c39b5c88fb44d473612265fa26cc2573a988ed9b92769fc5f1cd2"
+}

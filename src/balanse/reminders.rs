@@ -368,3 +368,30 @@ pub async fn sent_since(
     .fetch_all(pool)
     .await
 }
+
+/// Cancels `debtor`'s reminders that still wait to be approved or sent,
+/// after a reply or an Owner's decision. One already being sent is too late
+/// to stop. `actor` names who caused it in the audit log.
+pub async fn cancel_waiting(
+    outbox: &Outbox,
+    pool: &PgPool,
+    business: BusinessId,
+    debtor: DebtorId,
+    actor: &str,
+) -> Result<(), OutboxError> {
+    let waiting = sqlx::query_scalar!(
+        "select m.id from reminders r join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id
+         where r.tenant_id = $1 and r.debtor_id = $2 and m.status in ('draft', 'approved')",
+        business.as_uuid(),
+        debtor.as_uuid(),
+    )
+    .fetch_all(pool)
+    .await?;
+    for id in waiting {
+        match outbox.cancel(business, id.into(), actor).await {
+            Ok(()) | Err(OutboxError::WrongStatus(_)) => {}
+            Err(err) => return Err(err),
+        }
+    }
+    Ok(())
+}

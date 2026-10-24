@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update debtors\n             set state = $3, promised_until = $4,\n                 cycle_start = case when $5 then null else cycle_start end,\n                 updated_at = $6\n             where tenant_id = $1 and id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Date",
+        "Bool",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5110dbf1bb1ca402ebb64d0fa0acc90ef354d8b326f659c848c3e9fab66c0cd0"
+}

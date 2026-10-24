@@ -30,6 +30,7 @@ Record every approved decision, dated, in `docs/decisions.md`, and update the su
 - **First version (2026-10-24):** email sent by the engine plus "copy and open" for Viber, Messenger, WhatsApp and SMS; paid status from the owner, replies and proof uploads, with no payment-gateway integration.
 - **Product rules (2026-10-24):** the legal limits R1–R18 (`docs/research/legal-limits.md`) are enforced in code; above all, Balanse never touches money, never contacts anyone but the debtor, and never issues invoices, statements of account or a receivables ledger.
 - **Brief (2026-10-24):** approved; `docs/product/brief.md` sets the direction for the spec.
+- **Spec (2026-10-24):** decided round by round in `docs/product/spec.md`, the single source for spec decisions; Round 1 (the core loop) is decided.
 - **Name and domain (2026-10-24):** Balanse, at `balanseapp.com`.
 - **Licence (2026-10-23):** all rights reserved (source readable, not reusable); only the engine, Nudgewright, is open source (AGPL-3.0-only).
 - **Engine:** Nudgewright at a pinned release; an engine change is made, tested and released there, never patched here.

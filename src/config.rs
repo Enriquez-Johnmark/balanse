@@ -46,6 +46,11 @@ pub struct Config {
     pub public_base_url: String,
     /// Signs reply addresses (and, later, the Debtor's page links).
     pub master_key_hex: SecretString,
+    /// Where the web server listens, e.g. `127.0.0.1:3000`.
+    pub bind_addr: String,
+    /// Proves inbound email comes from the provider; without it, replies
+    /// aren't taken in.
+    pub inbound_secret: Option<SecretString>,
 }
 
 /// A setting that is missing or can't be used.
@@ -83,6 +88,8 @@ impl Config {
             reply_domain: optional("REPLY_DOMAIN").unwrap_or_else(|| "reply.balanseapp.test".to_owned()),
             public_base_url: optional("PUBLIC_BASE_URL").unwrap_or_else(|| "http://127.0.0.1:3000".to_owned()),
             master_key_hex: SecretString::from(required("MASTER_KEY")?),
+            bind_addr: optional("BIND_ADDR").unwrap_or_else(|| "127.0.0.1:3000".to_owned()),
+            inbound_secret: optional("INBOUND_SECRET").map(SecretString::from),
         };
         config.master_key()?;
         Ok(config)

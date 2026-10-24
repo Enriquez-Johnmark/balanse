@@ -2,12 +2,15 @@
 
 use std::process::ExitCode;
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::Context;
 use balanse::balanse::account_emails::welcome_email;
 use balanse::balanse::presend::BalanseChecks;
 use balanse::balanse::reminders::{ReplyAddresses, Scheduler};
+use balanse::balanse::replies::Replies;
 use balanse::balanse::signups::approve_signup;
+use balanse::balanse::web::{AppState, router};
 use balanse::config::Config;
 use balanse::engine::accounts::{LoginLink, Logins, RequestId, Signups};
 use balanse::engine::clock::{Clock, SystemClock};
@@ -17,8 +20,12 @@ use balanse::engine::signed::Signer;
 /// How many messages one drain may send.
 const DRAIN_BATCH: usize = 50;
 
-const USAGE: &str =
-    "usage: balanse migrate | outbox-drain | schedule | signups | approve-signup <id> | decline-signup <id>";
+const USAGE: &str = "usage: balanse serve | migrate | outbox-drain | schedule | signups | approve-signup <id> | \
+                     decline-signup <id>";
+/// How often `serve` drains the outbox.
+const DRAIN_EVERY: Duration = Duration::from_secs(30);
+/// How often `serve` drafts the reminders that are due.
+const SCHEDULE_EVERY: Duration = Duration::from_secs(60 * 60);
 
 fn main() -> ExitCode {
     let result = tokio::runtime::Builder::new_multi_thread()
@@ -50,6 +57,7 @@ async fn run() -> anyhow::Result<()> {
         .context("connecting to the database")?;
     let clock: Arc<dyn Clock> = Arc::new(SystemClock);
     match command {
+        "serve" => serve(&config, pool, clock).await?,
         "migrate" => {
             balanse::MIGRATOR.run(&pool).await.context("running migrations")?;
             println!("migrations applied");
@@ -108,4 +116,55 @@ fn request_id() -> anyhow::Result<RequestId> {
     let text = std::env::args().nth(2).context(USAGE)?;
     let id: uuid::Uuid = text.parse().context("not a request ID")?;
     Ok(RequestId::from(id))
+}
+
+/// Runs the web server, the outbox sender and the scheduler until stopped.
+async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> anyhow::Result<()> {
+    balanse::MIGRATOR.run(&pool).await.context("running migrations")?;
+    let signer = Arc::new(Signer::new(&config.master_key()?, "balanse reply address v1"));
+    let addresses = ReplyAddresses::new(signer, &config.reply_domain);
+    let mut state = AppState::new(pool.clone(), clock.clone(), &config.public_base_url);
+    if let Some(secret) = &config.inbound_secret {
+        let replies = Replies::new(pool.clone(), clock.clone(), addresses.clone(), &config.public_base_url);
+        state = state.with_inbound(secret.clone(), replies);
+    } else {
+        tracing::warn!("INBOUND_SECRET isn't set: replies aren't taken in");
+    }
+    let wake = state.sender_wake_up();
+
+    let checks = Arc::new(BalanseChecks::for_sending(pool.clone(), clock.clone()));
+    let mut sender = Sender::new(pool.clone(), config.mailer()?, clock.clone(), checks);
+    if let Some(budget) = config.send_budget() {
+        sender = sender.with_budget(budget);
+    }
+    tokio::spawn(async move {
+        loop {
+            if let Err(err) = sender.drain_once(DRAIN_BATCH).await {
+                tracing::error!(%err, "sending failed");
+            }
+            // Wakes early when an email is approved.
+            let _ = tokio::time::timeout(DRAIN_EVERY, wake.notified()).await;
+        }
+    });
+    let scheduler = Scheduler::new(pool, clock, addresses);
+    tokio::spawn(async move {
+        loop {
+            if let Err(err) = scheduler.run().await {
+                tracing::error!(%err, "drafting reminders failed");
+            }
+            tokio::time::sleep(SCHEDULE_EVERY).await;
+        }
+    });
+
+    let listener = tokio::net::TcpListener::bind(&config.bind_addr)
+        .await
+        .with_context(|| format!("listening on {}", config.bind_addr))?;
+    tracing::info!(addr = %config.bind_addr, "serving");
+    axum::serve(listener, router(state))
+        .with_graceful_shutdown(async {
+            let _ = tokio::signal::ctrl_c().await;
+        })
+        .await
+        .context("serving")?;
+    Ok(())
 }

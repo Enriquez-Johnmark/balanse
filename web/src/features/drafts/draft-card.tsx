@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 import { EditDraftDialog } from "@/features/drafts/edit-draft-dialog"
@@ -31,15 +32,27 @@ export const approvedToast = {
   type: "success",
 }
 
+type DraftCardProps = {
+  draft: DraftRow
+  isSelected: boolean
+  onSelectedChange: (selected: boolean) => void
+}
+
 /** One Draft waiting for approval, shown in full (D1). */
-export function DraftCard({ draft }: { draft: DraftRow }) {
+export function DraftCard({ draft, isSelected, onSelectedChange }: DraftCardProps) {
   const approve = useApprove()
   const discard = useDiscard()
   const refusal = approve.data?.find((answer) => !answer.approved)?.reason
   const error = approve.error?.message ?? refusal ?? discard.error?.message
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row flex-wrap items-start gap-3">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) => onSelectedChange(checked === true)}
+          aria-label={`Select the draft to ${draft.debtor_name}`}
+          className="mt-0.5"
+        />
         <DraftHeading draft={draft} />
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

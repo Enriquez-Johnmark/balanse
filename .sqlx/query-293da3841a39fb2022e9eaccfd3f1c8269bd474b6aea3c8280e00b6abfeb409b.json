@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select amount from debts where tenant_id = $1 and id = $2 for update",
+  "query": "select amount, debtor_id from debts where tenant_id = $1 and id = $2 for update",
   "describe": {
     "columns": [
       {
@@ -13,6 +13,17 @@
             "name": "amount"
           }
         }
+      },
+      {
+        "ordinal": 1,
+        "name": "debtor_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "debtor_id"
+          }
+        }
       }
     ],
     "parameters": {
@@ -22,8 +33,9 @@
       ]
     },
     "nullable": [
+      false,
       false
     ]
   },
-  "hash": "56cb5750c970369bf4cda5240de72e4d19920f226e0687b725e837a8a7484a92"
+  "hash": "293da3841a39fb2022e9eaccfd3f1c8269bd474b6aea3c8280e00b6abfeb409b"
 }

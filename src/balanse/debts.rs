@@ -13,9 +13,11 @@ use time::macros::format_description;
 
 use super::businesses::BusinessId;
 use super::debtors::DebtorId;
+use super::reminders::redraft_waiting;
 use crate::engine::audit::{self, AuditEvent};
 use crate::engine::clock::Clock;
 use crate::engine::ids::id_type;
+use crate::engine::outbox::{Outbox, OutboxError};
 
 id_type!(
     /// One Debt of a Business.
@@ -115,6 +117,9 @@ pub enum DebtError {
     /// The database failed.
     #[error(transparent)]
     Database(#[from] sqlx::Error),
+    /// Cancelling a reminder that no longer matched failed.
+    #[error(transparent)]
+    Outbox(#[from] OutboxError),
 }
 
 /// The Debts of each Business.
@@ -122,12 +127,17 @@ pub enum DebtError {
 pub struct Debts {
     pool: PgPool,
     clock: Arc<dyn Clock>,
+    outbox: Outbox,
 }
 
 impl Debts {
     /// Debts in `pool`.
     pub fn new(pool: PgPool, clock: Arc<dyn Clock>) -> Self {
-        Self { pool, clock }
+        Self {
+            outbox: Outbox::new(pool.clone(), clock.clone()),
+            pool,
+            clock,
+        }
     }
 
     /// Adds an open Debt owed by `debtor`, one of `business`'s Debtors.
@@ -187,6 +197,7 @@ impl Debts {
         if inserted.rows_affected() == 0 {
             return Err(DebtError::NotFound);
         }
+        redraft_waiting(&self.outbox, &self.pool, business, debtor, "system").await?;
         Ok(id)
     }
 
@@ -254,8 +265,8 @@ impl Debts {
             .ok_or_else(|| DebtError::Invalid(vec!["Amount: a peso amount like ₱12,500.00".to_owned()]))?;
         let now = self.clock.now();
         let mut tx = self.pool.begin().await?;
-        let before = sqlx::query_scalar!(
-            "select amount from debts where tenant_id = $1 and id = $2 for update",
+        let before = sqlx::query!(
+            "select amount, debtor_id from debts where tenant_id = $1 and id = $2 for update",
             business.as_uuid(),
             id.as_uuid(),
         )
@@ -279,10 +290,11 @@ impl Debts {
             action: "debt.amount_changed",
             subject_type: "debt",
             subject_id: id.as_uuid(),
-            details: json!({ "from": before, "to": amount }),
+            details: json!({ "from": before.amount, "to": amount }),
         };
         audit::record(&mut *tx, &event).await?;
         tx.commit().await?;
+        redraft_waiting(&self.outbox, &self.pool, business, before.debtor_id.into(), by).await?;
         Ok(())
     }
 }

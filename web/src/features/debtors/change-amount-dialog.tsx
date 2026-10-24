@@ -38,7 +38,8 @@ export function ChangeAmountDialog({ debt }: { debt: DebtRow }) {
         <DialogHeader>
           <DialogTitle>Amount owed on {debt.invoice_number}</DialogTitle>
           <DialogDescription>
-            After a part payment or a correction. Reminders show the new amount.
+            After a part payment or a correction. A reminder still waiting is drafted again with the
+            new amount.
           </DialogDescription>
         </DialogHeader>
         <Field>

@@ -261,3 +261,34 @@ async fn c1_a_debt_added_after_paid_starts_a_cycle_of_its_own(pool: PgPool) {
     .unwrap();
     assert_eq!(steps, ["first"], "INV-2 gets its own friendly first reminder");
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn b3_a_changed_amount_redrafts_the_waiting_reminder_with_it(pool: PgPool) {
+    let clock = clock();
+    let business = business(&pool, &clock).await;
+    let debtor = debtor(&pool, &clock, business).await;
+    debt(&pool, &clock, business, debtor, "INV-1").await;
+    let scheduler = scheduler(&pool, &clock);
+    scheduler.run().await.unwrap(); // the first reminder, for ₱12,500.00
+    let debts = Debts::new(pool.clone(), clock.clone());
+    let debt = debts.for_debtor(business, debtor).await.unwrap()[0].id;
+
+    debts
+        .change_amount(business, debt, "₱5,000.00", "ana@reyes.test")
+        .await
+        .unwrap();
+    scheduler.run().await.unwrap();
+
+    let drafts = drafts(&pool).await;
+    assert!(
+        drafts.len() == 1 && drafts[0].2.contains("₱5,000.00") && !drafts[0].2.contains("₱12,500.00"),
+        "got {drafts:?}"
+    );
+    let step: String = sqlx::query_scalar(
+        "select r.step from reminders r join outbox_messages m on m.id = r.message_id where m.status = 'draft'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(step, "first", "still the friendly first reminder");
+}

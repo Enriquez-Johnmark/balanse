@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select r.id, r.message_id from reminders r\n         join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id\n         where r.tenant_id = $1 and r.debtor_id = $2 and m.status in ('draft', 'approved')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "message_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "message_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "0bf676f6e4112a114a36222aaf9e8597e30a5c88d25e4c665b119ecd1f88caad"
+}

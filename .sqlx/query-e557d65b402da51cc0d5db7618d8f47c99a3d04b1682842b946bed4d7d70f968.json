@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from reminders where tenant_id = $1 and id = any($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e557d65b402da51cc0d5db7618d8f47c99a3d04b1682842b946bed4d7d70f968"
+}

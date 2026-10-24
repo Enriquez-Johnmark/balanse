@@ -384,28 +384,58 @@ pub async fn sent_since(
 }
 
 /// Cancels `debtor`'s reminders that still wait to be approved or sent,
-/// after a reply or an Owner's decision. One already being sent is too late
-/// to stop. `actor` names who caused it in the audit log.
+/// after a reply or an Owner's decision, and returns which. One already
+/// being sent is too late to stop. `actor` names who caused it in the audit
+/// log.
 pub async fn cancel_waiting(
     outbox: &Outbox,
     pool: &PgPool,
     business: BusinessId,
     debtor: DebtorId,
     actor: &str,
-) -> Result<(), OutboxError> {
-    let waiting = sqlx::query_scalar!(
-        "select m.id from reminders r join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id
+) -> Result<Vec<ReminderId>, OutboxError> {
+    let waiting = sqlx::query!(
+        "select r.id, r.message_id from reminders r
+         join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id
          where r.tenant_id = $1 and r.debtor_id = $2 and m.status in ('draft', 'approved')",
         business.as_uuid(),
         debtor.as_uuid(),
     )
     .fetch_all(pool)
     .await?;
-    for id in waiting {
-        match outbox.cancel(business, id.into(), actor).await {
-            Ok(()) | Err(OutboxError::WrongStatus(_)) => {}
+    let mut cancelled = Vec::with_capacity(waiting.len());
+    for row in waiting {
+        match outbox.cancel(business, row.message_id.into(), actor).await {
+            Ok(()) => cancelled.push(row.id.into()),
+            Err(OutboxError::WrongStatus(_)) => {}
             Err(err) => return Err(err),
         }
     }
+    Ok(cancelled)
+}
+
+/// After `debtor`'s Debts changed: cancels its waiting reminders, which no
+/// longer list the Debts as they are, and forgets their steps, so the
+/// scheduler drafts them again with the current Debts (B3). A reminder
+/// never sent can have no replies, so nothing else goes with it.
+pub async fn redraft_waiting(
+    outbox: &Outbox,
+    pool: &PgPool,
+    business: BusinessId,
+    debtor: DebtorId,
+    actor: &str,
+) -> Result<(), OutboxError> {
+    let cancelled: Vec<_> = cancel_waiting(outbox, pool, business, debtor, actor)
+        .await?
+        .iter()
+        .map(|id| id.as_uuid())
+        .collect();
+    sqlx::query!(
+        "delete from reminders where tenant_id = $1 and id = any($2)",
+        business.as_uuid(),
+        &cancelled,
+    )
+    .execute(pool)
+    .await?;
     Ok(())
 }

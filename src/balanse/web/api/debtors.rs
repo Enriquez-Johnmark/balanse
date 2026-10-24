@@ -378,6 +378,7 @@ fn debt_error(err: DebtError) -> ApiError {
         DebtError::Invalid(problems) => ApiError::problems("Please check the Debt's details.", problems),
         DebtError::NotFound => ApiError::NotFound,
         DebtError::Database(err) => ApiError::internal(err),
+        DebtError::Outbox(err) => ApiError::internal(err),
     }
 }
 

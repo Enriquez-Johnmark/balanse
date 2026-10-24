@@ -48,4 +48,4 @@ The owner's checks of First Circle Invoice, Lista and PayMongo Invoices (brief, 
 
 ## Open
 
-- The implementation readiness gate (Phase 5): awaiting the owner's "yes".
+- Nothing: the readiness gate passed on 2026-10-24.

@@ -10,7 +10,7 @@ Balanse runs on [Nudgewright](https://github.com/Enriquez-Johnmark/nudgewright),
 
 ## Status
 
-**Spec.** No product code exists yet. The research is done ([docs/research](docs/research/README.md)), the [brief](docs/product/brief.md) is approved, and the spec with its acceptance criteria is approved; the architecture comes next. Decisions are in [docs/decisions.md](docs/decisions.md).
+**Build.** The research, [brief](docs/product/brief.md), [spec](docs/product/spec.md) and [architecture](docs/architecture.md) are approved, and the build has started: first the engine's shared account and spreadsheet modules, then Balanse's core loop. Decisions are in [docs/decisions.md](docs/decisions.md).
 
 ## Licence
 

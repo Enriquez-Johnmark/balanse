@@ -310,3 +310,33 @@ async fn c5_an_approved_reminder_still_goes_out_after_its_draft_deadline(pool: P
 
     assert_eq!((at_night, in_the_morning), (0, 1));
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn c7_a_reminder_held_for_sending_hours_is_cancelled_by_the_owners_decision(pool: PgPool) {
+    let (world, id) = world(&pool).await;
+    world.clock.advance(Duration::hours(12)); // Monday 21:00 Manila
+    world.approve(&pool, id).await.unwrap();
+    world.drain(&pool).await; // held until Tuesday 08:00
+    let outcomes = balanse::balanse::outcomes::Outcomes::new(pool.clone(), world.clock.clone());
+    outcomes
+        .disputed(world.business, world.debtor, "ana@reyes.test")
+        .await
+        .unwrap();
+    world.clock.advance(Duration::hours(10)); // Tuesday 07:00
+    outcomes
+        .resume(world.business, world.debtor, "ana@reyes.test")
+        .await
+        .unwrap();
+    world.clock.advance(Duration::hours(1)); // Tuesday 08:00
+
+    let sent = world.drain(&pool).await;
+
+    assert!(
+        sent.is_empty(),
+        "the reminder approved before the dispute stays cancelled"
+    );
+    assert_eq!(
+        world.outbox.get(world.business, id).await.unwrap().status,
+        MessageStatus::Cancelled
+    );
+}

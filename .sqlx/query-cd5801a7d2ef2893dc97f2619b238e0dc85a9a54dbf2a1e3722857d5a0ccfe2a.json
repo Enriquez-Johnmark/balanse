@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into debtors\n                (id, tenant_id, business_name, contact_name, contact_email, contact_mobile, language,\n                 created_at, updated_at)\n             values ($1, $2, $3, $4, $5, $6, $7, $8, $8)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cd5801a7d2ef2893dc97f2619b238e0dc85a9a54dbf2a1e3722857d5a0ccfe2a"
+}

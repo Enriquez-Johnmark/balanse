@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select amount from debts where tenant_id = $1 and id = $2 for update",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "amount",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "amount"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "56cb5750c970369bf4cda5240de72e4d19920f226e0687b725e837a8a7484a92"
+}

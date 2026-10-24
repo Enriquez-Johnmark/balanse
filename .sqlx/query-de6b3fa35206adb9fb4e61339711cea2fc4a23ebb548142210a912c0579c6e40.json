@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into debts\n                (id, tenant_id, debtor_id, invoice_number, invoice_date, amount, amount_centavos, due_date, note,\n                 status, created_at, updated_at)\n             select $1, d.tenant_id, d.id, $4, $5, $6, $7, $8, $9, 'open', $10, $10\n             from debtors d where d.tenant_id = $2 and d.id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Date",
+        "Text",
+        "Int8",
+        "Date",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "de6b3fa35206adb9fb4e61339711cea2fc4a23ebb548142210a912c0579c6e40"
+}

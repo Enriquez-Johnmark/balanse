@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select business_name, contact_name, contact_email, contact_mobile, language\n             from debtors where tenant_id = $1 and id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "business_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "business_name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "contact_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "contact_email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_email"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "contact_mobile",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_mobile"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "language"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "5c0f488c25b48f8bf49d05dba6b465205730022fbca6be7891b21d6fb15fc58e"
+}

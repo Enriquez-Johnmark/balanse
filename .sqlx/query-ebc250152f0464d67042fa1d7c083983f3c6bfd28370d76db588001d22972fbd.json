@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select debtor_id, invoice_number, invoice_date, amount, due_date, note, status\n             from debts where tenant_id = $1 and id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "debtor_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "debtor_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "invoice_number",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "invoice_number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "invoice_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "invoice_date"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "amount"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "due_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "due_date"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "ebc250152f0464d67042fa1d7c083983f3c6bfd28370d76db588001d22972fbd"
+}

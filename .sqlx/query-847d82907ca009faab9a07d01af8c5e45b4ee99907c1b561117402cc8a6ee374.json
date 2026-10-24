@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update debts set amount = $3, amount_centavos = $4, updated_at = $5 where tenant_id = $1 and id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "847d82907ca009faab9a07d01af8c5e45b4ee99907c1b561117402cc8a6ee374"
+}

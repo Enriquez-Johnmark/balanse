@@ -1,0 +1,8 @@
+# Local defaults; CI and production set these explicitly.
+[env]
+DATABASE_URL = "postgres://balanse:balanse@localhost:5432/balanse"
+
+# Fetch the engine (a git dependency) with the git command line, which
+# works behind the cloud sessions' proxy.
+[net]
+git-fetch-with-cli = true

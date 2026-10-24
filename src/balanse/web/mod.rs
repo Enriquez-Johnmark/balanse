@@ -1,4 +1,5 @@
-//! Balanse's web layer: the JSON API the React app calls (`api`).
+//! Balanse's web layer: the JSON API the React app calls (`api`) and the
+//! built React app itself (`spa`).
 //!
 //! - Every Business endpoint takes an [`api::ApiBusiness`] from the session
 //!   cookie and passes its ID to the repositories, so another Business's IDs
@@ -9,6 +10,7 @@
 
 mod api;
 mod hooks;
+mod spa;
 
 use std::sync::Arc;
 
@@ -56,6 +58,8 @@ pub struct AppState {
     wake_sender: Arc<Notify>,
     /// Inbound email, when `INBOUND_SECRET` is set.
     inbound: Option<Arc<Inbound>>,
+    /// The built React app (`WEB_DIR`), when served by this server.
+    web_dir: Option<Arc<std::path::PathBuf>>,
 }
 
 /// Taking in replies.
@@ -82,6 +86,7 @@ impl AppState {
             secure_cookies: base_url.starts_with("https://"),
             wake_sender: Arc::new(Notify::new()),
             inbound: None,
+            web_dir: None,
             pool,
             clock,
             base_url,
@@ -93,6 +98,16 @@ impl AppState {
     #[must_use]
     pub fn with_inbound(mut self, secret: SecretString, replies: Replies) -> Self {
         self.inbound = Some(Arc::new(Inbound { secret, replies }));
+        self
+    }
+
+    /// Serves the built React app from `dir` (`web/dist`).
+    #[must_use]
+    pub fn with_web_dir(mut self, dir: &std::path::Path) -> Self {
+        if !spa::is_built(dir) {
+            tracing::warn!(dir = %dir.display(), "the React app isn't built there; run `pnpm --dir web build`");
+        }
+        self.web_dir = Some(Arc::new(dir.to_owned()));
         self
     }
 
@@ -108,6 +123,7 @@ pub fn router(state: AppState) -> Router {
         .merge(api::routes())
         .merge(hooks::routes())
         .route("/health", get(health))
+        .fallback(spa::app)
         .layer(middleware::from_fn_with_state(state.clone(), same_origin_posts))
         .layer(middleware::from_fn(security_headers))
         .layer(TraceLayer::new_for_http())

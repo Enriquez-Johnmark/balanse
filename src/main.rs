@@ -123,7 +123,7 @@ async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> an
     balanse::MIGRATOR.run(&pool).await.context("running migrations")?;
     let signer = Arc::new(Signer::new(&config.master_key()?, "balanse reply address v1"));
     let addresses = ReplyAddresses::new(signer, &config.reply_domain);
-    let mut state = AppState::new(pool.clone(), clock.clone(), &config.public_base_url);
+    let mut state = AppState::new(pool.clone(), clock.clone(), &config.public_base_url).with_web_dir(&config.web_dir);
     if let Some(secret) = &config.inbound_secret {
         let replies = Replies::new(pool.clone(), clock.clone(), addresses.clone(), &config.public_base_url);
         state = state.with_inbound(secret.clone(), replies);

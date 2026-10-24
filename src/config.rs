@@ -51,6 +51,8 @@ pub struct Config {
     /// Proves inbound email comes from the provider; without it, replies
     /// aren't taken in.
     pub inbound_secret: Option<SecretString>,
+    /// The built React app (`WEB_DIR`, default `web/dist`).
+    pub web_dir: std::path::PathBuf,
 }
 
 /// A setting that is missing or can't be used.
@@ -90,6 +92,7 @@ impl Config {
             master_key_hex: SecretString::from(required("MASTER_KEY")?),
             bind_addr: optional("BIND_ADDR").unwrap_or_else(|| "127.0.0.1:3000".to_owned()),
             inbound_secret: optional("INBOUND_SECRET").map(SecretString::from),
+            web_dir: optional("WEB_DIR").map_or_else(|| "web/dist".into(), Into::into),
         };
         config.master_key()?;
         Ok(config)

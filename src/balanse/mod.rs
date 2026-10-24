@@ -9,5 +9,6 @@ pub mod presend;
 pub mod reminders;
 pub mod replies;
 pub mod schedule;
+pub mod signups;
 pub mod web;
 pub mod wording;

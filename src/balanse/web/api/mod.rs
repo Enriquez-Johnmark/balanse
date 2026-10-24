@@ -8,6 +8,7 @@
 //! - Errors are JSON ([`ErrorBody`]) without internal details.
 
 mod login;
+mod signup;
 
 use axum::extract::rejection::{JsonRejection, PathRejection};
 use axum::extract::{FromRequest, FromRequestParts, Request};
@@ -25,6 +26,7 @@ use crate::engine::accounts::Session;
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
         .merge(login::routes())
+        .merge(signup::routes())
         .route("/api/{*rest}", any(not_found))
 }
 
@@ -66,6 +68,15 @@ impl ApiError {
     pub fn internal(err: impl std::fmt::Display) -> Self {
         tracing::error!(%err, "API request failed");
         Self::Internal
+    }
+
+    /// Refused as unprocessable, listing each problem.
+    pub fn problems(message: impl Into<String>, problems: Vec<String>) -> Self {
+        Self::Refused {
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            message: message.into(),
+            problems,
+        }
     }
 
     /// Refused as unprocessable, with `message`.

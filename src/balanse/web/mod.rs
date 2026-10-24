@@ -22,7 +22,7 @@ use sqlx::PgPool;
 use tokio::sync::Notify;
 use tower_http::trace::TraceLayer;
 
-use crate::engine::accounts::Logins;
+use crate::engine::accounts::{Logins, Signups};
 use crate::engine::clock::Clock;
 
 /// The session cookie's name.
@@ -34,6 +34,7 @@ pub struct AppState {
     pool: PgPool,
     clock: Arc<dyn Clock>,
     logins: Logins,
+    signups: Signups,
     /// Where links in emails point, e.g. `https://app.balanseapp.com`.
     base_url: String,
     /// `scheme://host[:port]` of the base URL; posts must come from it.
@@ -54,6 +55,7 @@ impl AppState {
         };
         Self {
             logins: Logins::new(pool.clone(), clock.clone()),
+            signups: Signups::new(pool.clone(), clock.clone()),
             secure_cookies: base_url.starts_with("https://"),
             wake_sender: Arc::new(Notify::new()),
             pool,

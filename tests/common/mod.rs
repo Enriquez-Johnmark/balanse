@@ -141,3 +141,14 @@ pub async fn log_in(app: &axum::Router, pool: &PgPool, email: &str) -> String {
         .cookie
         .unwrap()
 }
+
+/// `#[sqlx::test]` gives each test a fresh database; points the binary at it.
+pub async fn database_url(pool: &PgPool) -> String {
+    let name: String = sqlx::query_scalar("select current_database()")
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    let base = std::env::var("DATABASE_URL").unwrap();
+    let (server, _) = base.rsplit_once('/').unwrap();
+    format!("{server}/{name}")
+}

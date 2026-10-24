@@ -7,13 +7,13 @@ use std::time::Duration;
 use anyhow::Context;
 use balanse::balanse::account_emails::welcome_email;
 use balanse::balanse::presend::BalanseChecks;
-use balanse::balanse::reminders::{ReplyAddresses, Scheduler};
+use balanse::balanse::reminders::{MANILA, ReplyAddresses, Scheduler};
 use balanse::balanse::replies::Replies;
 use balanse::balanse::signups::approve_signup;
 use balanse::balanse::web::{AppState, router};
-use balanse::config::Config;
+use balanse::config::{Config, MailConfig};
 use balanse::engine::accounts::{LoginLink, Logins, RequestId, Signups};
-use balanse::engine::clock::{Clock, SystemClock};
+use balanse::engine::clock::{Clock, FixedClock, SystemClock};
 use balanse::engine::outbox::Sender;
 use balanse::engine::signed::Signer;
 
@@ -21,7 +21,7 @@ use balanse::engine::signed::Signer;
 const DRAIN_BATCH: usize = 50;
 
 const USAGE: &str = "usage: balanse serve | migrate | outbox-drain | schedule | signups | approve-signup <id> | \
-                     decline-signup <id>";
+                     decline-signup <id> | dev-schedule --date YYYY-MM-DD";
 /// How often `serve` drains the outbox.
 const DRAIN_EVERY: Duration = Duration::from_secs(30);
 /// How often `serve` drafts the reminders that are due.
@@ -72,9 +72,10 @@ async fn run() -> anyhow::Result<()> {
             println!("{report:?}");
         }
         "schedule" => {
-            let signer = Arc::new(Signer::new(&config.master_key()?, "balanse reply address v1"));
-            let replies = ReplyAddresses::new(signer, &config.reply_domain);
-            let report = Scheduler::new(pool, clock, replies).run().await.context("drafting")?;
+            let report = Scheduler::new(pool, clock, reply_addresses(&config)?)
+                .run()
+                .await
+                .context("drafting")?;
             println!("{report:?}");
         }
         "signups" => {
@@ -106,6 +107,7 @@ async fn run() -> anyhow::Result<()> {
             Signups::new(pool, clock).decline(request_id()?).await?;
             println!("declined");
         }
+        "dev-schedule" => dev_schedule(&config, pool).await?,
         _ => anyhow::bail!(USAGE),
     }
     Ok(())
@@ -118,11 +120,46 @@ fn request_id() -> anyhow::Result<RequestId> {
     Ok(RequestId::from(id))
 }
 
+/// The signed reply addresses reminders carry.
+fn reply_addresses(config: &Config) -> anyhow::Result<ReplyAddresses> {
+    let signer = Arc::new(Signer::new(&config.master_key()?, "balanse reply address v1"));
+    Ok(ReplyAddresses::new(signer, &config.reply_domain))
+}
+
+/// `balanse dev-schedule --date YYYY-MM-DD` (development only): drafts the
+/// reminders due on that date, as if it were 07:30 there in Manila, so the
+/// whole loop can be tried before real dates come round. They are then
+/// approved from the Drafts page as usual.
+async fn dev_schedule(config: &Config, pool: sqlx::PgPool) -> anyhow::Result<()> {
+    if !matches!(config.mail, MailConfig::Mailpit { .. }) {
+        anyhow::bail!("dev-schedule is for development only and runs only with MAIL_PROVIDER=mailpit");
+    }
+    let date = match std::env::args().skip(2).collect::<Vec<_>>().as_slice() {
+        [flag, date] if flag == "--date" => {
+            time::Date::parse(date, time::macros::format_description!("[year]-[month]-[day]")).ok()
+        }
+        _ => None,
+    };
+    let Some(date) = date else {
+        anyhow::bail!("usage: balanse dev-schedule --date YYYY-MM-DD");
+    };
+    balanse::MIGRATOR.run(&pool).await.context("running migrations")?;
+    let clock: Arc<dyn Clock> = Arc::new(FixedClock::new(date.with_hms(7, 30, 0)?.assume_offset(MANILA)));
+    let report = Scheduler::new(pool, clock, reply_addresses(config)?)
+        .run()
+        .await
+        .context("drafting")?;
+    println!(
+        "{} reminder draft(s) created as of {date}; approve them on the Drafts page.",
+        report.drafted
+    );
+    Ok(())
+}
+
 /// Runs the web server, the outbox sender and the scheduler until stopped.
 async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> anyhow::Result<()> {
     balanse::MIGRATOR.run(&pool).await.context("running migrations")?;
-    let signer = Arc::new(Signer::new(&config.master_key()?, "balanse reply address v1"));
-    let addresses = ReplyAddresses::new(signer, &config.reply_domain);
+    let addresses = reply_addresses(config)?;
     let mut state = AppState::new(pool.clone(), clock.clone(), &config.public_base_url).with_web_dir(&config.web_dir);
     if let Some(secret) = &config.inbound_secret {
         let replies = Replies::new(pool.clone(), clock.clone(), addresses.clone(), &config.public_base_url);

@@ -7,19 +7,8 @@ mod common;
 use std::process::Command;
 
 use balanse::engine::accounts::Signups;
-use common::clock;
+use common::{clock, database_url};
 use sqlx::PgPool;
-
-/// `#[sqlx::test]` gives each test a fresh database; point the binary at it.
-async fn database_url(pool: &PgPool) -> String {
-    let name: String = sqlx::query_scalar("select current_database()")
-        .fetch_one(pool)
-        .await
-        .unwrap();
-    let base = std::env::var("DATABASE_URL").unwrap();
-    let (server, _) = base.rsplit_once('/').unwrap();
-    format!("{server}/{name}")
-}
 
 async fn balanse(pool: &PgPool, args: &[&str]) -> String {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_balanse"));

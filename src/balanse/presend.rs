@@ -24,7 +24,7 @@ use sqlx::PgPool;
 use time::macros::time;
 use time::{Date, Duration, OffsetDateTime, Weekday};
 
-use super::reminders::{MANILA, open_debts, sent_since};
+use super::reminders::{MANILA, open_debts, sent_dates};
 use super::schedule::cap_allows;
 use super::wording::{debt_block, footer};
 use crate::engine::accounts::is_email_address;
@@ -106,12 +106,7 @@ impl BalanseChecks {
             return Ok(());
         };
         let now = clock.now();
-        let sent_on: Vec<_> = sent_since(&self.pool, tenant, debtor, now - Duration::days(7))
-            .await
-            .map_err(unavailable)?
-            .into_iter()
-            .map(|at| at.to_offset(MANILA).date())
-            .collect();
+        let sent_on = sent_dates(&self.pool, tenant, debtor, now).await.map_err(unavailable)?;
         let until = earliest_send(now, &sent_on);
         if until <= now {
             return Ok(());

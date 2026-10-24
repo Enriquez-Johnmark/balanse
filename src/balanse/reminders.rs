@@ -251,11 +251,7 @@ impl Scheduler {
         )
         .fetch_one(&self.pool)
         .await?;
-        let sent_on = sent_since(&self.pool, c.business, c.debtor, now - Duration::days(7))
-            .await?
-            .into_iter()
-            .map(|at| at.to_offset(MANILA).date())
-            .collect();
+        let sent_on = sent_dates(&self.pool, c.business, c.debtor, now).await?;
         let next = plan(&Plan {
             today,
             cycle_start,
@@ -361,15 +357,16 @@ pub async fn open_debts(pool: &PgPool, business: BusinessId, debtor: DebtorId) -
         .collect())
 }
 
-/// When each message to `debtor` since `since` went out, sent by the engine
-/// or logged as sent by hand (C4).
-pub async fn sent_since(
+/// The Manila dates of every message to `debtor` in the 7 days before
+/// `now`, sent by the engine or logged as sent by hand: what the cap counts
+/// (C4).
+pub async fn sent_dates(
     pool: &PgPool,
     business: BusinessId,
     debtor: DebtorId,
-    since: OffsetDateTime,
-) -> Result<Vec<OffsetDateTime>, sqlx::Error> {
-    sqlx::query_scalar!(
+    now: OffsetDateTime,
+) -> Result<Vec<Date>, sqlx::Error> {
+    let sent = sqlx::query_scalar!(
         r#"select m.sent_at as "sent_at!" from reminders r
                join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id
            where r.tenant_id = $1 and r.debtor_id = $2 and m.sent_at > $3
@@ -377,10 +374,11 @@ pub async fn sent_since(
            select sent_at from manual_sends where tenant_id = $1 and debtor_id = $2 and sent_at > $3"#,
         business.as_uuid(),
         debtor.as_uuid(),
-        since,
+        now - Duration::days(7),
     )
     .fetch_all(pool)
-    .await
+    .await?;
+    Ok(sent.into_iter().map(|at| at.to_offset(MANILA).date()).collect())
 }
 
 /// Cancels `debtor`'s reminders that still wait to be approved or sent,

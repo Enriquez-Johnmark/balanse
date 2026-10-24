@@ -9,12 +9,11 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use time::Date;
-use time::macros::format_description;
 use uuid::Uuid;
 
 use super::{ApiBusiness, ApiError, ApiJson, ApiMember, ApiPath};
 use crate::balanse::debtors::{DebtorError, DebtorInput};
-use crate::balanse::debts::{DebtError, DebtInput};
+use crate::balanse::debts::{DebtError, DebtInput, parse_date};
 use crate::balanse::outcomes::OutcomeError;
 use crate::balanse::web::AppState;
 
@@ -346,7 +345,7 @@ async fn outcome(
             let until = form
                 .until
                 .as_deref()
-                .and_then(|text| Date::parse(text.trim(), format_description!("[year]-[month]-[day]")).ok())
+                .and_then(parse_date)
                 .ok_or_else(|| ApiError::invalid("Give the date the Debtor promised to pay by."))?;
             outcomes.promised(business, debtor, until, by).await
         }

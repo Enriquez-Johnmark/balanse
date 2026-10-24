@@ -299,7 +299,8 @@ impl Debts {
     }
 }
 
-fn parse_date(text: &str) -> Option<Date> {
+/// A `YYYY-MM-DD` date, as forms and spreadsheets send it.
+pub fn parse_date(text: &str) -> Option<Date> {
     Date::parse(text.trim(), format_description!("[year]-[month]-[day]")).ok()
 }
 

@@ -21,3 +21,33 @@ pub async fn business(pool: &PgPool, clock: &Arc<FixedClock>) -> BusinessId {
         .await
         .unwrap()
 }
+
+/// A mailer that records every send instead of delivering it; its provider
+/// blocks duplicate keys, like Resend.
+#[derive(Clone, Default)]
+pub struct RecordingMailer {
+    sent: Arc<std::sync::Mutex<Vec<balanse::engine::mail::Email>>>,
+}
+
+impl RecordingMailer {
+    pub fn sent(&self) -> Vec<balanse::engine::mail::Email> {
+        self.sent.lock().unwrap().clone()
+    }
+}
+
+impl balanse::engine::mail::Mailer for RecordingMailer {
+    fn blocks_duplicate_keys(&self) -> bool {
+        true
+    }
+
+    async fn send(
+        &self,
+        email: &balanse::engine::mail::Email,
+        idempotency_key: &str,
+    ) -> Result<balanse::engine::mail::SendReceipt, balanse::engine::mail::MailError> {
+        self.sent.lock().unwrap().push(email.clone());
+        Ok(balanse::engine::mail::SendReceipt {
+            provider_message_id: format!("fake-{idempotency_key}"),
+        })
+    }
+}

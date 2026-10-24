@@ -41,6 +41,7 @@ async fn not_found() -> ApiError {
 
 /// What every API error answers.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct ErrorBody {
     /// One sentence for the Owner.
     pub message: String,

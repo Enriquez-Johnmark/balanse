@@ -19,6 +19,7 @@ pub(super) fn routes() -> Router<AppState> {
 
 /// A request for an account.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct SignupRequest {
     /// The business's name, which signs its reminders.
     pub business_name: String,

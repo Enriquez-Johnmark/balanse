@@ -28,6 +28,7 @@ pub(super) fn routes() -> Router<AppState> {
 
 /// One reminder waiting for approval, shown in full.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct DraftRow {
     /// Its ID.
     pub id: Uuid,
@@ -96,6 +97,7 @@ async fn list(
 
 /// Drafts the Owner reviewed, each with the hash of what they saw.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct Approval {
     /// The Drafts.
     pub drafts: Vec<Reviewed>,
@@ -103,6 +105,7 @@ pub struct Approval {
 
 /// One reviewed Draft.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct Reviewed {
     /// Its ID.
     pub id: Uuid,
@@ -112,6 +115,7 @@ pub struct Reviewed {
 
 /// What became of one Draft in a batch.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct Approved {
     /// Its ID.
     pub id: Uuid,
@@ -173,6 +177,7 @@ fn reason(err: &OutboxError) -> String {
 
 /// A Draft's new wording.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct Edit {
     /// The subject line.
     pub subject: String,

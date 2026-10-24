@@ -25,6 +25,7 @@ pub(super) fn routes() -> Router<AppState> {
 
 /// Asking for a login link.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct LoginRequest {
     /// The address to send it to.
     pub email: String,
@@ -71,6 +72,7 @@ async fn log_out(State(state): State<AppState>, request: axum::extract::Request)
 
 /// Who is logged in.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct Me {
     /// Their Business's name.
     pub business_name: String,

@@ -39,6 +39,10 @@ jobs:
         run: cargo clippy --all-targets --all-features --locked -- -D warnings
       - name: Test (including the D6 crash test)
         run: cargo test --all-features --locked
+      - name: The API's TypeScript types are committed (written by cargo test)
+        run: |
+          git status --porcelain web/src/api/generated
+          test -z "$(git status --porcelain web/src/api/generated)"
 
   dependencies:
     runs-on: ubuntu-24.04

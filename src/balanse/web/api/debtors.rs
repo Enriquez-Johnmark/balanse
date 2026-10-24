@@ -29,6 +29,7 @@ pub(super) fn routes() -> Router<AppState> {
 
 /// A Debtor in the list: what it owes is counted, never summed.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct DebtorRow {
     /// Its ID.
     pub id: Uuid,
@@ -68,6 +69,7 @@ async fn list(
 
 /// A new Debtor, as the form sends it.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct NewDebtor {
     /// The client company's name.
     pub business_name: String,
@@ -83,6 +85,7 @@ pub struct NewDebtor {
 
 /// The ID of something just created.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct Created {
     /// Its ID.
     pub id: Uuid,
@@ -107,6 +110,7 @@ async fn create(
 /// One Debtor's page: its Contact, its Debts, its recent reminders and
 /// replies.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct DebtorPage {
     /// Its ID.
     pub id: Uuid,
@@ -134,6 +138,7 @@ pub struct DebtorPage {
 
 /// One Debt on a Debtor's page.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct DebtRow {
     /// Its ID.
     pub id: Uuid,
@@ -154,6 +159,7 @@ pub struct DebtRow {
 
 /// One reminder on a Debtor's page.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct ReminderRow {
     /// `heads_up`, `first`, `second` or `third`.
     pub step: String,
@@ -169,6 +175,7 @@ pub struct ReminderRow {
 
 /// One reply on a Debtor's page. Its text is untrusted and shown as text.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct ReplyRow {
     /// Who sent it.
     pub from_address: String,
@@ -256,6 +263,7 @@ async fn page(
 
 /// A new Debt, as the form sends it.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct NewDebt {
     /// The Business's own invoice number.
     pub invoice_number: String,
@@ -292,6 +300,7 @@ async fn add_debt(
 
 /// The amount still owed, after a partial payment or a correction.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct NewAmount {
     /// As typed, e.g. `₱5,000.00`.
     pub amount: String,
@@ -313,6 +322,7 @@ async fn change_amount(
 
 /// The Owner's decision about a Debtor (F3).
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct Outcome {
     /// `paid`, `promised`, `disputed` or `resume`.
     pub outcome: String,

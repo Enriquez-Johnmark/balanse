@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select step from reminders where tenant_id = $1 and debtor_id = $2 and cycle_start = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "step",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "step"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6e3bdbb671a891bbacfafad970be0a02186302aab2776fcf9badac4d3ab1d337"
+}

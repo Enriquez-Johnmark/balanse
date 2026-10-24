@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select m.sent_at as \"sent_at!\" from reminders r\n               join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id\n           where r.tenant_id = $1 and r.debtor_id = $2 and m.sent_at > $3\n           union all\n           select sent_at from manual_sends where tenant_id = $1 and debtor_id = $2 and sent_at > $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sent_at!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cac9103067a2a01186e1d9ecabaa7cc903ca0b2a24a158353158dd2bbacc9157"
+}

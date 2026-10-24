@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update debtors set cycle_start = $3 where tenant_id = $1 and id = $2 and cycle_start is null",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5c6d4fb2510e9c383173b562f22b3e5f1546b2298d8dd0bf32f2c244bda628d0"
+}

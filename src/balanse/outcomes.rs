@@ -7,6 +7,10 @@
 //! - **Disputed:** reminders stop.
 //! - **Resume:** a new cycle starts today, so the first reminder is due
 //!   tomorrow.
+//!
+//! A Debtor who asked to stop, or whose address bounced, stays stopped: the
+//! Owner can't resume reminders or take a promise for them (G4, F4). Paid
+//! and disputed are still recorded.
 
 use std::sync::Arc;
 
@@ -30,6 +34,9 @@ pub enum OutcomeError {
     /// A promise date that has already passed.
     #[error("the promised date must be today or later")]
     PastDate,
+    /// The Debtor asked to stop, or their address bounced; reminders stay off.
+    #[error("reminders to this debtor are stopped")]
+    Stopped,
     /// The database failed.
     #[error(transparent)]
     Database(#[from] sqlx::Error),
@@ -71,7 +78,7 @@ impl Outcomes {
         .execute(&mut *tx)
         .await?
         .rows_affected();
-        self.set_state(&mut tx, business, debtor, "active", None, true).await?;
+        self.set_state(&mut tx, business, debtor, Decision::Paid).await?;
         record(
             &mut tx,
             business,
@@ -100,7 +107,7 @@ impl Outcomes {
             return Err(OutcomeError::PastDate);
         }
         let mut tx = self.pool.begin().await?;
-        self.set_state(&mut tx, business, debtor, "promised", Some(until), false)
+        self.set_state(&mut tx, business, debtor, Decision::Promised(until))
             .await?;
         record(
             &mut tx,
@@ -121,8 +128,7 @@ impl Outcomes {
     pub async fn disputed(&self, business: BusinessId, debtor: DebtorId, by: &str) -> Result<(), OutcomeError> {
         let now = self.clock.now();
         let mut tx = self.pool.begin().await?;
-        self.set_state(&mut tx, business, debtor, "disputed", None, false)
-            .await?;
+        self.set_state(&mut tx, business, debtor, Decision::Disputed).await?;
         record(&mut tx, business, debtor, now, by, "debtor.disputed", json!({})).await?;
         tx.commit().await?;
         cancel_waiting(&self.outbox, &self.pool, business, debtor, by).await?;
@@ -134,7 +140,7 @@ impl Outcomes {
         let now = self.clock.now();
         let today = now.to_offset(MANILA).date();
         let mut tx = self.pool.begin().await?;
-        self.set_state(&mut tx, business, debtor, "active", None, false).await?;
+        self.set_state(&mut tx, business, debtor, Decision::Resume).await?;
         sqlx::query!(
             "update debtors set cycle_start = $3 where tenant_id = $1 and id = $2",
             business.as_uuid(),
@@ -148,16 +154,37 @@ impl Outcomes {
         Ok(())
     }
 
+    /// Moves the Debtor to the state `decision` leads to, unless it is
+    /// stopped: then a decision that would turn reminders on is refused, and
+    /// any other leaves the stop in place.
     async fn set_state(
         &self,
         tx: &mut sqlx::PgConnection,
         business: BusinessId,
         debtor: DebtorId,
-        state: &str,
-        promised_until: Option<Date>,
-        new_cycle: bool,
+        decision: Decision,
     ) -> Result<(), OutcomeError> {
-        let updated = sqlx::query!(
+        let current = sqlx::query_scalar!(
+            "select state from debtors where tenant_id = $1 and id = $2 for update",
+            business.as_uuid(),
+            debtor.as_uuid(),
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or(OutcomeError::NotFound)?;
+        if matches!(current.as_str(), "opted_out" | "bounced") {
+            return match decision {
+                Decision::Promised(_) | Decision::Resume => Err(OutcomeError::Stopped),
+                Decision::Paid | Decision::Disputed => Ok(()),
+            };
+        }
+        let (state, promised_until, new_cycle) = match decision {
+            Decision::Paid => ("active", None, true),
+            Decision::Promised(until) => ("promised", Some(until), false),
+            Decision::Disputed => ("disputed", None, false),
+            Decision::Resume => ("active", None, false),
+        };
+        sqlx::query!(
             "update debtors
              set state = $3, promised_until = $4,
                  cycle_start = case when $5 then null else cycle_start end,
@@ -172,11 +199,17 @@ impl Outcomes {
         )
         .execute(&mut *tx)
         .await?;
-        if updated.rows_affected() == 0 {
-            return Err(OutcomeError::NotFound);
-        }
         Ok(())
     }
+}
+
+/// What the Owner decided.
+#[derive(Debug, Clone, Copy)]
+enum Decision {
+    Paid,
+    Promised(Date),
+    Disputed,
+    Resume,
 }
 
 async fn record(

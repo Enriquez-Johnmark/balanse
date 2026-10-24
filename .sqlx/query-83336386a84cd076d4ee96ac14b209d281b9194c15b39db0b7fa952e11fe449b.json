@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select state from debtors where tenant_id = $1 and id = $2 for update",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "state"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "83336386a84cd076d4ee96ac14b209d281b9194c15b39db0b7fa952e11fe449b"
+}

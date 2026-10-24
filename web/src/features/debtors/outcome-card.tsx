@@ -38,6 +38,8 @@ export function OutcomeCard({ debtor }: { debtor: DebtorPage }) {
   const record = useRecordOutcome(debtor.id)
   const busy = record.isPending
   const [isConfirming, setIsConfirming] = useState(false)
+  // Only the Debtor (or a new address) can lift these; the API refuses too.
+  const stopped = debtor.state === "opted_out" || debtor.state === "bounced"
   return (
     <Card>
       <CardHeader>
@@ -47,7 +49,9 @@ export function OutcomeCard({ debtor }: { debtor: DebtorPage }) {
             ? `Reminders start again after ${formatDate(debtor.promised_until)}.`
             : debtor.state === "active"
               ? "Reminders are drafted for you to approve."
-              : "No reminders are drafted until you resume them."}
+              : stopped
+                ? "No reminders go to this Debtor. Only they can turn them back on."
+                : "No reminders are drafted until you resume them."}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -78,7 +82,7 @@ export function OutcomeCard({ debtor }: { debtor: DebtorPage }) {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <PromiseDialog debtorId={debtor.id} />
+          {stopped ? null : <PromiseDialog debtorId={debtor.id} />}
           <Button
             variant="outline"
             onClick={() => record.mutate({ outcome: "disputed", until: null })}
@@ -86,7 +90,7 @@ export function OutcomeCard({ debtor }: { debtor: DebtorPage }) {
           >
             They dispute it
           </Button>
-          {debtor.state === "active" ? null : (
+          {debtor.state === "active" || stopped ? null : (
             <Button
               variant="outline"
               onClick={() => record.mutate({ outcome: "resume", until: null })}

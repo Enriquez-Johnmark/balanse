@@ -356,6 +356,11 @@ async fn outcome(
         Ok(()) => Ok(StatusCode::NO_CONTENT),
         Err(OutcomeError::NotFound) => Err(ApiError::NotFound),
         Err(OutcomeError::PastDate) => Err(ApiError::invalid("The promised date must be today or later.")),
+        Err(OutcomeError::Stopped) => Err(ApiError::Refused {
+            status: StatusCode::CONFLICT,
+            message: "Reminders to this Debtor stay off: they asked to stop, or their email bounced.".to_owned(),
+            problems: Vec::new(),
+        }),
         Err(err) => Err(ApiError::internal(err)),
     }
 }

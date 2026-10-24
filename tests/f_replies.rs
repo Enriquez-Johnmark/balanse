@@ -301,3 +301,40 @@ async fn f3_resume_restarts_the_schedule_the_next_day(pool: PgPool) {
 
     assert_eq!((same_day, drafts(&pool).await), (0, 1));
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g4_the_owner_cant_turn_reminders_back_on_for_a_debtor_who_asked_to_stop(pool: PgPool) {
+    let world = world(&pool).await;
+    for stop in ["opted_out", "bounced"] {
+        sqlx::query("update debtors set state = $2 where id = $1")
+            .bind(world.debtor.as_uuid())
+            .bind(stop)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let outcomes = world.outcomes(&pool);
+
+        let resumed = outcomes.resume(world.business, world.debtor, "ana@reyes.test").await;
+        let promised = outcomes
+            .promised(world.business, world.debtor, date!(2026 - 11 - 20), "ana@reyes.test")
+            .await;
+        outcomes
+            .paid(world.business, world.debtor, "ana@reyes.test")
+            .await
+            .unwrap();
+
+        assert!(
+            matches!(resumed, Err(balanse::balanse::outcomes::OutcomeError::Stopped)),
+            "{stop}: {resumed:?}"
+        );
+        assert!(
+            matches!(promised, Err(balanse::balanse::outcomes::OutcomeError::Stopped)),
+            "{stop}: {promised:?}"
+        );
+        assert_eq!(
+            state(&pool, world.debtor).await,
+            stop,
+            "paid settles the Debts but keeps the stop"
+        );
+    }
+}

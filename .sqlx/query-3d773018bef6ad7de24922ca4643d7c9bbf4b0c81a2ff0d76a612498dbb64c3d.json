@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id, invoice_number, invoice_date, amount, due_date, note, status\n             from debts where tenant_id = $1 and debtor_id = $2\n             order by due_date, invoice_number, id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "invoice_number",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "invoice_number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "invoice_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "invoice_date"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "amount"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "due_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "due_date"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "3d773018bef6ad7de24922ca4643d7c9bbf4b0c81a2ff0d76a612498dbb64c3d"
+}

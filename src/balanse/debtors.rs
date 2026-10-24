@@ -46,6 +46,29 @@ pub struct Debtor {
     pub contact_mobile: Option<String>,
     /// `taglish` or `english`.
     pub language: String,
+    /// Where its reminders stand, e.g. `active` or `paused`.
+    pub state: String,
+    /// Until when a Promise holds, if one does.
+    pub promised_until: Option<time::Date>,
+}
+
+/// A Debtor in the list, with what it owes counted, never summed (H2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DebtorSummary {
+    /// Its ID.
+    pub id: DebtorId,
+    /// The client company's name.
+    pub business_name: String,
+    /// The Contact's name.
+    pub contact_name: String,
+    /// Where its reminders stand, e.g. `active` or `paused`.
+    pub state: String,
+    /// Until when a Promise holds, if one does.
+    pub promised_until: Option<time::Date>,
+    /// How many of its Debts are open.
+    pub open_debts: i64,
+    /// The earliest due date among its open Debts.
+    pub oldest_due: Option<time::Date>,
 }
 
 /// Debtor errors.
@@ -99,10 +122,39 @@ impl Debtors {
         Ok(id)
     }
 
+    /// Every Debtor of `business`, by name.
+    pub async fn list(&self, business: BusinessId) -> Result<Vec<DebtorSummary>, DebtorError> {
+        let rows = sqlx::query!(
+            r#"select d.id, d.business_name, d.contact_name, d.state, d.promised_until,
+                      count(t.id) filter (where t.status = 'open') as "open_debts!",
+                      min(t.due_date) filter (where t.status = 'open') as oldest_due
+               from debtors d
+               left join debts t on t.tenant_id = d.tenant_id and t.debtor_id = d.id
+               where d.tenant_id = $1
+               group by d.id
+               order by lower(d.business_name), d.id"#,
+            business.as_uuid(),
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| DebtorSummary {
+                id: row.id.into(),
+                business_name: row.business_name,
+                contact_name: row.contact_name,
+                state: row.state,
+                promised_until: row.promised_until,
+                open_debts: row.open_debts,
+                oldest_due: row.oldest_due,
+            })
+            .collect())
+    }
+
     /// One of `business`'s Debtors.
     pub async fn get(&self, business: BusinessId, id: DebtorId) -> Result<Debtor, DebtorError> {
         let row = sqlx::query!(
-            "select business_name, contact_name, contact_email, contact_mobile, language
+            "select business_name, contact_name, contact_email, contact_mobile, language, state, promised_until
              from debtors where tenant_id = $1 and id = $2",
             business.as_uuid(),
             id.as_uuid(),
@@ -117,6 +169,8 @@ impl Debtors {
             contact_email: row.contact_email,
             contact_mobile: row.contact_mobile,
             language: row.language,
+            state: row.state,
+            promised_until: row.promised_until,
         })
     }
 }

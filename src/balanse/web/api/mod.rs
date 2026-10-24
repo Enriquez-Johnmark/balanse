@@ -7,6 +7,7 @@
 //!   cross-site form can't send.
 //! - Errors are JSON ([`ErrorBody`]) without internal details.
 
+mod debtors;
 mod login;
 mod signup;
 
@@ -21,10 +22,12 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use super::{AppState, session_cookie};
+use crate::balanse::businesses::BusinessId;
 use crate::engine::accounts::Session;
 
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
+        .merge(debtors::routes())
         .merge(login::routes())
         .merge(signup::routes())
         .route("/api/{*rest}", any(not_found))
@@ -165,5 +168,18 @@ impl FromRequestParts<AppState> for ApiMember {
             Ok(None) => Err(ApiError::NotLoggedIn),
             Err(err) => Err(ApiError::internal(err)),
         }
+    }
+}
+
+/// The logged-in person's Business.
+#[derive(Debug, Clone, Copy)]
+pub struct ApiBusiness(pub BusinessId);
+
+impl FromRequestParts<AppState> for ApiBusiness {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+        let ApiMember(member) = ApiMember::from_request_parts(parts, state).await?;
+        Ok(Self(member.tenant))
     }
 }

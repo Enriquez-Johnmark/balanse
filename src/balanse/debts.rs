@@ -190,6 +190,32 @@ impl Debts {
         Ok(id)
     }
 
+    /// `debtor`'s Debts, earliest due first.
+    pub async fn for_debtor(&self, business: BusinessId, debtor: DebtorId) -> Result<Vec<Debt>, DebtError> {
+        let rows = sqlx::query!(
+            "select id, invoice_number, invoice_date, amount, due_date, note, status
+             from debts where tenant_id = $1 and debtor_id = $2
+             order by due_date, invoice_number, id",
+            business.as_uuid(),
+            debtor.as_uuid(),
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| Debt {
+                id: row.id.into(),
+                debtor,
+                invoice_number: row.invoice_number,
+                invoice_date: row.invoice_date,
+                amount: row.amount,
+                due_date: row.due_date,
+                note: row.note,
+                status: DebtStatus::parse(&row.status),
+            })
+            .collect())
+    }
+
     /// One of `business`'s Debts.
     pub async fn get(&self, business: BusinessId, id: DebtId) -> Result<Debt, DebtError> {
         let row = sqlx::query!(

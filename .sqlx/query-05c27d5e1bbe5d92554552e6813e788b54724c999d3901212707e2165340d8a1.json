@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select business_name, contact_name, contact_email, contact_mobile, language, state, promised_until\n             from debtors where tenant_id = $1 and id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "business_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "business_name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "contact_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "contact_email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_email"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "contact_mobile",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_mobile"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "language"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "promised_until",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "promised_until"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "05c27d5e1bbe5d92554552e6813e788b54724c999d3901212707e2165340d8a1"
+}

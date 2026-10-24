@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select r.step, m.subject, m.status, r.created_at, m.sent_at\n         from reminders r join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id\n         where r.tenant_id = $1 and r.debtor_id = $2\n         order by r.created_at desc limit 20",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "step",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "step"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "subject"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "sent_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "sent_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "920b17eec77cb218e058bdfcd3514a2482abd3f929a450b8d200834dff82daaa"
+}

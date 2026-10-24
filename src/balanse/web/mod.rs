@@ -8,6 +8,7 @@
 //!   cross-site posts.
 
 mod api;
+mod hooks;
 
 use std::sync::Arc;
 
@@ -18,6 +19,7 @@ use axum::http::{HeaderValue, Method, StatusCode, header};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
+use secrecy::SecretString;
 use sqlx::PgPool;
 use tokio::sync::Notify;
 use tower_http::trace::TraceLayer;
@@ -25,6 +27,7 @@ use tower_http::trace::TraceLayer;
 use crate::balanse::debtors::Debtors;
 use crate::balanse::debts::Debts;
 use crate::balanse::outcomes::Outcomes;
+use crate::balanse::replies::Replies;
 use crate::engine::accounts::{Logins, Signups};
 use crate::engine::clock::Clock;
 use crate::engine::outbox::Outbox;
@@ -51,6 +54,14 @@ pub struct AppState {
     secure_cookies: bool,
     /// Wakes the outbox sender so a login email goes out at once.
     wake_sender: Arc<Notify>,
+    /// Inbound email, when `INBOUND_SECRET` is set.
+    inbound: Option<Arc<Inbound>>,
+}
+
+/// Taking in replies.
+struct Inbound {
+    secret: SecretString,
+    replies: Replies,
 }
 
 impl AppState {
@@ -70,11 +81,19 @@ impl AppState {
             outbox: Outbox::new(pool.clone(), clock.clone()),
             secure_cookies: base_url.starts_with("https://"),
             wake_sender: Arc::new(Notify::new()),
+            inbound: None,
             pool,
             clock,
             base_url,
             origin,
         }
+    }
+
+    /// Takes in replies signed with `secret`.
+    #[must_use]
+    pub fn with_inbound(mut self, secret: SecretString, replies: Replies) -> Self {
+        self.inbound = Some(Arc::new(Inbound { secret, replies }));
+        self
     }
 
     /// Notified whenever an email is approved and should go out now.
@@ -87,6 +106,7 @@ impl AppState {
 pub fn router(state: AppState) -> Router {
     Router::new()
         .merge(api::routes())
+        .merge(hooks::routes())
         .route("/health", get(health))
         .layer(middleware::from_fn_with_state(state.clone(), same_origin_posts))
         .layer(middleware::from_fn(security_headers))

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-**Balanse** ("balance") is polite payment follow-up for Philippine small businesses: the owner lists who owes them money, Balanse drafts Taglish or English reminders, the owner approves each one, it is sent once, and follow-ups stop when the customer replies or pays. It is the second product on the engine, [Loopwright](https://github.com/Enriquez-Johnmark/loopwright), after [Kompleto](https://github.com/Enriquez-Johnmark/kompleto).
+**Balanse** ("balance") is polite payment follow-up for Philippine small businesses: the owner lists who owes them money, Balanse drafts Taglish or English reminders, the owner approves each one, it is sent once, and follow-ups stop when the customer replies or pays. It is the second product on the engine, [Nudgewright](https://github.com/Enriquez-Johnmark/nudgewright), after [Kompleto](https://github.com/Enriquez-Johnmark/kompleto).
 
 ## Phases
 
@@ -11,7 +11,7 @@ Each gate needs the owner's explicit "yes"; an approval for one phase never carr
 | 1. Research | done, verified (`docs/research/README.md`) |
 | 2. Brief: segment, channels, limits | **in progress**: Round 1 decided; brief drafted (`docs/product/brief.md`), awaiting the owner's "yes" |
 | 3. Spec & acceptance criteria | not started |
-| 4. Architecture (what moves into Loopwright, what stays here) | not started |
+| 4. Architecture (what moves into Nudgewright, what stays here) | not started |
 | 5. Implementation readiness gate | not started |
 | 6+. Build | not started |
 
@@ -30,8 +30,8 @@ Record every approved decision, dated, in `docs/decisions.md`, and update the su
 - **First version (2026-10-24):** email sent by the engine plus "copy and open" for Viber, Messenger, WhatsApp and SMS; paid status from the owner, replies and proof uploads, with no payment-gateway integration.
 - **Product rules (2026-10-24):** the legal limits R1–R18 (`docs/research/legal-limits.md`) are enforced in code; above all, Balanse never touches money, never contacts anyone but the debtor, and never issues invoices, statements of account or a receivables ledger.
 - **Name and domain (2026-10-24):** Balanse, at `balanseapp.com`.
-- **Licence (2026-10-23):** all rights reserved (source readable, not reusable); only the engine, Loopwright, is open source (AGPL-3.0-only).
-- **Engine:** Loopwright at a pinned release; an engine change is made, tested and released there, never patched here.
+- **Licence (2026-10-23):** all rights reserved (source readable, not reusable); only the engine, Nudgewright, is open source (AGPL-3.0-only).
+- **Engine:** Nudgewright at a pinned release; an engine change is made, tested and released there, never patched here.
 - **Budget:** ₱0 until pilots. No customer data goes to free LLM tiers that train on inputs, and the app never runs on a Claude subscription (API key only).
 - **Signed commits (2026-10-24):** commits are signed with the owner's SSH key.
 - **Owner constraints:** no network, no interviews or sales calls, no paid ads. Written, asynchronous contact is fine.

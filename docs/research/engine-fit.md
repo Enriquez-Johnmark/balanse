@@ -1,5 +1,7 @@
 # Balanse on Loopwright: what the engine covers and what's missing
 
+**Note 2026-10-24:** Loopwright was renamed **Nudgewright** (v0.2.0) after a trademark check, with behaviour unchanged; this note keeps the name it was written under.
+
 Status: **research note, 2026-10-24. Nothing here is an owner-approved decision.** It compares what Balanse needs with what [Loopwright v0.1.0](https://github.com/Enriquez-Johnmark/loopwright) provides, from reading its README and source on 2026-10-24. Engine changes follow Loopwright's rule: anything only one product needs stays in that product until a second product needs it.
 
 ## Key conclusions

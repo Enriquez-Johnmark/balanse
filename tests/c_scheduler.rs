@@ -232,3 +232,32 @@ async fn d7_a_draft_names_the_business_and_says_it_was_sent_via_balanse(pool: Pg
         "got {from} / {body}"
     );
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn c1_a_debt_added_after_paid_starts_a_cycle_of_its_own(pool: PgPool) {
+    let clock = clock();
+    let business = business(&pool, &clock).await;
+    let debtor = debtor(&pool, &clock, business).await;
+    debt(&pool, &clock, business, debtor, "INV-1").await;
+    let scheduler = scheduler(&pool, &clock);
+    scheduler.run().await.unwrap(); // INV-1's first reminder
+    balanse::balanse::outcomes::Outcomes::new(pool.clone(), clock.clone())
+        .paid(business, debtor, "ana@reyes.test")
+        .await
+        .unwrap();
+    // A new overdue invoice the same day, as overdue as the last one was.
+    debt(&pool, &clock, business, debtor, "INV-2").await;
+    scheduler.run().await.unwrap();
+    clock.advance(Duration::days(1));
+
+    scheduler.run().await.unwrap();
+
+    let steps: Vec<String> = sqlx::query_scalar(
+        "select r.step from reminders r join outbox_messages m on m.id = r.message_id
+         where m.status = 'draft'",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(steps, ["first"], "INV-2 gets its own friendly first reminder");
+}

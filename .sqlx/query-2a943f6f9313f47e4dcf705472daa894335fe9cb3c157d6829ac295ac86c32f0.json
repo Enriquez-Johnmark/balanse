@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select max(cycle_start) from reminders where tenant_id = $1 and debtor_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max",
+        "type_info": "Date",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "2a943f6f9313f47e4dcf705472daa894335fe9cb3c157d6829ac295ac86c32f0"
+}

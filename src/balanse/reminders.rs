@@ -212,10 +212,24 @@ impl Scheduler {
             .await?;
             cycle_start = Some(until);
         }
-        // A Debt entered already overdue starts its cycle the day before it
-        // was added, so its first reminder is the friendly one, at once.
-        let cycle_start =
-            cycle_start.unwrap_or_else(|| c.due.max(c.due_added.to_offset(MANILA).date() - Duration::days(1)));
+        let cycle_start = match cycle_start {
+            Some(start) => start,
+            None => {
+                // A Debt entered already overdue starts its cycle the day
+                // before it was added, so its first reminder is the friendly
+                // one, at once; but always after any earlier cycle, whose
+                // steps would otherwise count as done.
+                let fresh = c.due.max(c.due_added.to_offset(MANILA).date() - Duration::days(1));
+                let last = sqlx::query_scalar!(
+                    "select max(cycle_start) from reminders where tenant_id = $1 and debtor_id = $2",
+                    business,
+                    debtor,
+                )
+                .fetch_one(&self.pool)
+                .await?;
+                last.map_or(fresh, |last| fresh.max(last + Duration::days(1)))
+            }
+        };
         let done = sqlx::query_scalar!(
             "select step from reminders where tenant_id = $1 and debtor_id = $2 and cycle_start = $3",
             business,

@@ -11,7 +11,7 @@ Each gate needs the owner's explicit "yes"; an approval for one phase never carr
 | 1. Research | done, verified (`docs/research/README.md`) |
 | 2. Brief: segment, channels, limits | done, approved 2026-10-24 (`docs/product/brief.md`) |
 | 3. Spec & acceptance criteria | done, approved 2026-10-24 (`docs/product/spec.md`) |
-| 4. Architecture (what moves into Nudgewright, what stays here) | **in progress** |
+| 4. Architecture (what moves into Nudgewright, what stays here) | **in progress**: Round 1 decided (`docs/architecture.md`) |
 | 5. Implementation readiness gate | not started |
 | 6+. Build | not started |
 
@@ -31,6 +31,7 @@ Record every approved decision, dated, in `docs/decisions.md`, and update the su
 - **Product rules (2026-10-24):** the legal limits R1–R18 (`docs/research/legal-limits.md`) are enforced in code; above all, Balanse never touches money, never contacts anyone but the debtor, and never issues invoices, statements of account or a receivables ledger.
 - **Brief (2026-10-24):** approved; `docs/product/brief.md` sets the direction for the spec.
 - **Spec (2026-10-24):** decided round by round in `docs/product/spec.md`, the single source for spec decisions; complete, with 38 acceptance criteria (A1–H5) approved.
+- **Architecture (2026-10-24):** decided in `docs/architecture.md`: accounts and spreadsheet reading move into Nudgewright (v0.3.0); one Resend account shared with Kompleto (budgets 60/30); build order engine, then M1–M6.
 - **Name and domain (2026-10-24):** Balanse, at `balanseapp.com`.
 - **Licence (2026-10-23):** all rights reserved (source readable, not reusable); only the engine, Nudgewright, is open source (AGPL-3.0-only).
 - **Engine:** Nudgewright at a pinned release; an engine change is made, tested and released there, never patched here.

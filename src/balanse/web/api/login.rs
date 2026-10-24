@@ -10,10 +10,10 @@ use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 
 use super::{ApiError, ApiJson, ApiMember, ApiPath};
+use crate::balanse::account_emails::login_email;
 use crate::balanse::presend::BalanseChecks;
 use crate::balanse::web::{AppState, SESSION_COOKIE, session_cookie};
 use crate::engine::accounts::{Accounts, LoginLink, LoginOutcome, SESSION_LIFETIME};
-use crate::engine::mail::Email;
 
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
@@ -44,22 +44,6 @@ async fn request_link(State(state): State<AppState>, ApiJson(request): ApiJson<L
         }
     });
     StatusCode::ACCEPTED
-}
-
-/// The login email; the engine sends it to the member's own address.
-fn login_email(base_url: &str, link: &LoginLink<'_>) -> Email {
-    Email {
-        to_address: link.to_address.to_owned(),
-        from_name: "Balanse".to_owned(),
-        reply_to: None,
-        subject: "Your Balanse login link".to_owned(),
-        body_text: format!(
-            "Hi,\n\nOpen this link to log in to {} on Balanse:\n\n{base_url}/login/{}\n\nIt works once, for the \
-             next 15 minutes. After that, ask for a new one on Balanse's login page. If you didn't expect this \
-             email, ignore it.\n",
-            link.account_name, link.token,
-        ),
-    }
 }
 
 async fn use_link(State(state): State<AppState>, ApiPath(token): ApiPath<String>) -> Result<Response, ApiError> {

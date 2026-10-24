@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
 import { MailCheckIcon } from "lucide-react"
 import { useForm } from "react-hook-form"
+import { Link } from "react-router"
 import { z } from "zod"
 
 import { api } from "@/api/client"
@@ -72,6 +73,12 @@ export function LoginPage() {
                   {request.isPending ? <Spinner data-icon="inline-start" /> : null}
                   Email me a login link
                 </Button>
+                <p className="text-center text-sm text-muted-foreground">
+                  No account yet?{" "}
+                  <Link to="/signup" className="underline underline-offset-4">
+                    Request an account
+                  </Link>
+                </p>
               </FieldGroup>
             </form>
           )}

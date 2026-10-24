@@ -12,6 +12,11 @@ export const router = createBrowserRouter([
     lazy: async () => ({ Component: (await import("@/features/login/login-page")).LoginPage }),
   },
   {
+    path: "/signup",
+    HydrateFallback: PageLoading,
+    lazy: async () => ({ Component: (await import("@/features/signup/signup-page")).SignupPage }),
+  },
+  {
     path: "/login/:token",
     HydrateFallback: PageLoading,
     lazy: async () => ({

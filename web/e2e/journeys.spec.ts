@@ -79,3 +79,23 @@ test("f3 a promise pauses reminders until its date, and paid settles the invoice
   await page.getByRole("button", { name: "Mark as paid" }).click()
   await expect(page.getByRole("cell", { name: "Paid" })).toBeVisible()
 })
+
+test.describe("a visitor", () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
+
+  test("a3 a business that lends money is refused with the reason, and nothing is kept", async ({
+    page,
+  }) => {
+    const email = `lender-${run}@example.test`
+    await page.goto("/login")
+    await page.getByRole("link", { name: "Request an account" }).click()
+    await page.getByLabel("Business name").fill("Quick Cash Lending")
+    await page.getByLabel("Your email").fill(email)
+    await page.getByLabel("Yes").check()
+    await page.getByRole("checkbox", { name: /I accept the terms/ }).click()
+    await page.getByRole("button", { name: "Request an account" }).click()
+
+    await expect(page.getByText(/can't be used to collect loans/)).toBeVisible()
+    expect(balanse("signups")).not.toContain(email)
+  })
+})

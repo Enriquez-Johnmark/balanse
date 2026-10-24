@@ -4,6 +4,8 @@ import { api } from "@/api/client"
 import type { Created } from "@/api/generated/Created"
 import type { DebtorPage } from "@/api/generated/DebtorPage"
 import type { DebtorRow } from "@/api/generated/DebtorRow"
+import type { NewAmount } from "@/api/generated/NewAmount"
+import type { NewDebt } from "@/api/generated/NewDebt"
 import type { NewDebtor } from "@/api/generated/NewDebtor"
 import type { Outcome } from "@/api/generated/Outcome"
 
@@ -47,6 +49,26 @@ export function useRecordOutcome(id: string) {
   return useMutation({
     mutationFn: (outcome: Outcome) =>
       api<void>("POST", `/api/debtors/${encodeURIComponent(id)}/outcome`, outcome),
+    onSuccess: refresh,
+  })
+}
+
+/** B1: an unpaid invoice of this Debtor. */
+export function useAddDebt(debtorId: string) {
+  const refresh = useRefreshDebtors()
+  return useMutation({
+    mutationFn: (input: NewDebt) =>
+      api<Created>("POST", `/api/debtors/${encodeURIComponent(debtorId)}/debts`, input),
+    onSuccess: refresh,
+  })
+}
+
+/** B3: what is still owed on a Debt, after a part payment or a correction. */
+export function useChangeAmount(debtId: string) {
+  const refresh = useRefreshDebtors()
+  return useMutation({
+    mutationFn: (input: NewAmount) =>
+      api<void>("POST", `/api/debts/${encodeURIComponent(debtId)}/amount`, input),
     onSuccess: refresh,
   })
 }

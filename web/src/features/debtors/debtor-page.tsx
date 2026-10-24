@@ -9,7 +9,7 @@ import { NotFoundPage } from "@/app/not-found-page"
 import { PageHeader } from "@/components/page-header"
 import { QueryError } from "@/components/query-error"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -19,6 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { AddDebtDialog } from "@/features/debtors/add-debt-dialog"
+import { ChangeAmountDialog } from "@/features/debtors/change-amount-dialog"
 import { OutcomeCard } from "@/features/debtors/outcome-card"
 import { useDebtor } from "@/features/debtors/queries"
 import { formatDate, formatDateTime } from "@/lib/dates"
@@ -49,7 +51,7 @@ function DebtorContent({ debtor }: { debtor: DebtorDetail }) {
     <>
       <PageHeader title={debtor.business_name} description={contact.join(" · ")} />
       <OutcomeCard debtor={debtor} />
-      <DebtsCard debts={debtor.debts} />
+      <DebtsCard debtorId={debtor.id} debts={debtor.debts} />
       <div className="grid gap-6 lg:grid-cols-2">
         <RemindersCard reminders={debtor.reminders} />
         <RepliesCard replies={debtor.replies} />
@@ -59,11 +61,14 @@ function DebtorContent({ debtor }: { debtor: DebtorDetail }) {
 }
 
 /** Each amount exactly as typed; never a total (H2). */
-function DebtsCard({ debts }: { debts: DebtRow[] }) {
+function DebtsCard({ debtorId, debts }: { debtorId: string; debts: DebtRow[] }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Invoices owed</CardTitle>
+        <CardAction>
+          <AddDebtDialog debtorId={debtorId} />
+        </CardAction>
       </CardHeader>
       <CardContent>
         {debts.length === 0 ? (
@@ -90,7 +95,10 @@ function DebtsCard({ debts }: { debts: DebtRow[] }) {
                       <div className="text-xs text-muted-foreground">{debt.note}</div>
                     ) : null}
                   </TableCell>
-                  <TableCell>{debt.amount}</TableCell>
+                  <TableCell>
+                    {debt.amount}
+                    {debt.status === "open" ? <ChangeAmountDialog debt={debt} /> : null}
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     {formatDate(debt.due_date)}
                   </TableCell>

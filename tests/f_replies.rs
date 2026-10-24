@@ -338,3 +338,34 @@ async fn g4_the_owner_cant_turn_reminders_back_on_for_a_debtor_who_asked_to_stop
         );
     }
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn f1_a_redelivered_reply_finishes_what_a_crash_left_undone(pool: PgPool) {
+    let world = world(&pool).await;
+    let inbox = world.inbox(&pool);
+    inbox.receive(&reply(&world.reply_to, false)).await.unwrap();
+    // As if the process stopped right after the reply was stored: the
+    // notice never got approved and the reminder was never cancelled.
+    sqlx::query(
+        "update outbox_messages set status = 'draft', approved_hash = null, approved_at = null, approved_by = null",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let again = inbox.receive(&reply(&world.reply_to, false)).await.unwrap();
+
+    let statuses: Vec<(String, String)> =
+        sqlx::query_as("select to_address, status from outbox_messages order by to_address")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    assert_eq!(again, ReplyOutcome::Duplicate);
+    assert_eq!(
+        statuses,
+        [
+            ("ana@reyes.test".to_owned(), "approved".to_owned()),
+            ("lito@santos.test".to_owned(), "cancelled".to_owned())
+        ]
+    );
+}

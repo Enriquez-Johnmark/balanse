@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update replies set notice_id = $3 where tenant_id = $1 and id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0b1db7e56743ef694256013412e4511fa3ba2f938921bacfdd14238dbbc0e3b7"
+}

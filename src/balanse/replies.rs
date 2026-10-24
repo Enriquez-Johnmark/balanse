@@ -16,14 +16,15 @@ use std::sync::Arc;
 use serde_json::json;
 use sqlx::PgPool;
 
+use super::debtors::DebtorId;
 use super::presend::BalanseChecks;
 use super::reminders::{ReminderId, ReplyAddresses, cancel_waiting};
 use crate::engine::audit::{self, AuditEvent};
 use crate::engine::clock::Clock;
-use crate::engine::ids::{TenantId, id_type};
+use crate::engine::ids::{MessageId, TenantId, id_type};
 use crate::engine::inbound::InboundEmail;
 use crate::engine::mail::Email;
-use crate::engine::outbox::{Outbox, OutboxError};
+use crate::engine::outbox::{MessageStatus, Outbox, OutboxError};
 
 id_type!(
     /// One reply kept.
@@ -112,6 +113,8 @@ impl Replies {
         .execute(&mut *tx)
         .await?;
         if kept.rows_affected() == 0 {
+            drop(tx);
+            self.finish_duplicate(tenant, &email.key).await?;
             return Ok(ReplyOutcome::Duplicate);
         }
         if email.automatic {
@@ -152,19 +155,53 @@ impl Replies {
             ),
         };
         let notice = self.outbox.create_draft_in(&mut tx, tenant, &notice, None).await?;
+        sqlx::query!(
+            "update replies set notice_id = $3 where tenant_id = $1 and id = $2",
+            found.tenant_id,
+            id.as_uuid(),
+            notice.as_uuid(),
+        )
+        .execute(&mut *tx)
+        .await?;
         tx.commit().await?;
-        cancel_waiting(&self.outbox, &self.pool, tenant, found.debtor_id.into(), "system").await?;
-        let hash = self.outbox.get(tenant, notice).await?.content_hash();
-        self.outbox
-            .approve(
-                tenant,
-                notice,
-                NOTICE_APPROVER,
-                &hash,
-                &BalanseChecks::for_approval(self.pool.clone()),
-            )
-            .await?;
+        self.finish(tenant, found.debtor_id.into(), notice).await?;
         Ok(ReplyOutcome::Paused)
+    }
+
+    /// What follows a human reply once it is stored: its Debtor's waiting
+    /// reminders are cancelled and the Owner's notice approved. Both are
+    /// safe to repeat.
+    async fn finish(&self, tenant: TenantId, debtor: DebtorId, notice: MessageId) -> Result<(), ReplyError> {
+        cancel_waiting(&self.outbox, &self.pool, tenant, debtor, "system").await?;
+        let message = self.outbox.get(tenant, notice).await?;
+        if message.status != MessageStatus::Draft {
+            return Ok(());
+        }
+        let checks = BalanseChecks::for_approval(self.pool.clone());
+        match self
+            .outbox
+            .approve(tenant, notice, NOTICE_APPROVER, &message.content_hash(), &checks)
+            .await
+        {
+            Ok(()) | Err(OutboxError::WrongStatus(_)) => Ok(()),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    /// A reply delivered again, usually because the first delivery failed
+    /// part-way: finishes whatever it left undone.
+    async fn finish_duplicate(&self, tenant: TenantId, key: &str) -> Result<(), ReplyError> {
+        let stored = sqlx::query!(
+            "select debtor_id, notice_id from replies where tenant_id = $1 and message_key = $2",
+            tenant.as_uuid(),
+            key,
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+        match stored.and_then(|row| row.notice_id.map(|notice| (row.debtor_id, notice))) {
+            Some((debtor, notice)) => self.finish(tenant, debtor.into(), notice.into()).await,
+            None => Ok(()),
+        }
     }
 
     async fn find(&self, reminder: ReminderId) -> Result<Option<Found>, sqlx::Error> {

@@ -1,6 +1,6 @@
 # Balanse spec: first version
 
-Status: **Phase 3 in progress.** Built up round by round; everything under "Decided" is owner-approved, with dates. Background: [brief.md](brief.md) (approved 2026-10-24) and [../research/README.md](../research/README.md). The acceptance criteria are a draft awaiting approval (Round 3).
+Status: **Phase 3 complete (2026-10-24).** Built up round by round; everything under "Decided" is owner-approved, with dates. Background: [brief.md](brief.md) (approved 2026-10-24) and [../research/README.md](../research/README.md). The acceptance criteria were approved in Round 3.
 
 ## Decided
 
@@ -122,7 +122,7 @@ Status: **Phase 3 in progress.** Built up round by round; everything under "Deci
 
 The product rules R1–R18 in [../research/legal-limits.md](../research/legal-limits.md) §8, and "What it never does" in [brief.md](brief.md).
 
-## Acceptance criteria (draft, Round 3: awaiting the owner's approval)
+## Acceptance criteria (owner-approved 2026-10-24, Round 3)
 
 Balanse's first version is done when every criterion below passes. Each is checked by an automated test whose name starts with its ID. "Owner" means a business's account; "Debtor" means one of its clients.
 
@@ -182,4 +182,5 @@ Balanse's first version is done when every criterion below passes. Each is check
 
 ## Open
 
-- Round 3: approval of the acceptance criteria above.
+- Architecture (Phase 4): what moves from Kompleto into Nudgewright, and whether Balanse has its own Resend account.
+- Before pilots: the owner's checks of First Circle Invoice, Lista and PayMongo Invoices (brief, kill-checks).

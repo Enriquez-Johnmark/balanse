@@ -28,6 +28,18 @@ const steps: Record<string, string> = {
   third: "Third reminder",
 }
 
+const messageStatuses: Record<string, string> = {
+  draft: "Waiting for your approval",
+  approved: "Approved, waiting for sending hours",
+  sending: "Sending",
+  sent: "Sent",
+  failed: "Not sent yet; trying again",
+  blocked: "Blocked by the pre-send check",
+  unconfirmed: "Sending wasn't confirmed; not retried",
+  expired: "Expired unapproved",
+  cancelled: "Discarded",
+}
+
 /** "needs_call" → "Needs your call". */
 export function debtorStateLabel(state: string) {
   return debtorStates[state] ?? state
@@ -41,4 +53,9 @@ export function debtStatusLabel(status: string) {
 /** "heads_up" → "Heads-up". */
 export function stepLabel(step: string) {
   return steps[step] ?? step
+}
+
+/** An outbox status, "expired" → "Expired unapproved". */
+export function messageStatusLabel(status: string) {
+  return messageStatuses[status] ?? status
 }

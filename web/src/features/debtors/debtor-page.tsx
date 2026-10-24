@@ -24,7 +24,7 @@ import { ChangeAmountDialog } from "@/features/debtors/change-amount-dialog"
 import { OutcomeCard } from "@/features/debtors/outcome-card"
 import { useDebtor } from "@/features/debtors/queries"
 import { formatDate, formatDateTime } from "@/lib/dates"
-import { debtStatusLabel, stepLabel } from "@/lib/labels"
+import { debtStatusLabel, messageStatusLabel, stepLabel } from "@/lib/labels"
 
 /** One Debtor: its Contact, its Debts, its reminders and its replies. */
 export function DebtorPage() {
@@ -134,7 +134,7 @@ function RemindersCard({ reminders }: { reminders: ReminderRow[] }) {
                 <span className="text-muted-foreground">
                   {reminder.sent_at
                     ? `Sent ${formatDateTime(reminder.sent_at)}`
-                    : `${reminder.status}, drafted ${formatDateTime(reminder.drafted_at)}`}
+                    : `${messageStatusLabel(reminder.status)} · drafted ${formatDateTime(reminder.drafted_at)}`}
                 </span>
               </li>
             ))}

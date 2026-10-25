@@ -29,6 +29,7 @@ pub(super) fn routes() -> Router<AppState> {
         .route("/d/{token}", get(page))
         .route("/d/{token}/paid", post(paid))
         .route("/d/{token}/dispute", post(dispute))
+        .route("/d/{token}/stop", post(stop))
         .layer(middleware::from_fn(private))
 }
 
@@ -54,6 +55,7 @@ pub(super) struct Words {
     pub ask_them: &'static str,
     pub paid: &'static str,
     pub dispute: &'static str,
+    pub stop: &'static str,
     pub claimed: &'static str,
     pub disputed: &'static str,
     pub stopped: &'static str,
@@ -70,6 +72,7 @@ const TAGLISH: Words = Words {
     ask_them: "I-reply lang po sa email para sa detalye ng pagbabayad.",
     paid: "Nagbayad na po ako",
     dispute: "May dispute po ako dito",
+    stop: "Huwag na po akong i-email",
     claimed: "Salamat po! Sinabi na namin na nagbayad na kayo; kukumpirmahin nila ito.",
     disputed: "Naitala na po na may dispute kayo; hindi na po kayo papadalhan ng paalala hangga't hindi ito naaayos.",
     stopped: "Hindi na po kayo makakatanggap ng email tungkol dito.",
@@ -86,6 +89,7 @@ const ENGLISH: Words = Words {
     ask_them: "Reply to the email for payment details.",
     paid: "I've paid",
     dispute: "I dispute this",
+    stop: "Stop emailing me",
     claimed: "Thank you! We've let them know you've paid; they'll confirm it.",
     disputed: "Your dispute is noted; you won't get reminders until it's sorted out.",
     stopped: "You won't get any more emails about this.",
@@ -233,6 +237,13 @@ async fn page(State(state): State<AppState>, Path(token): Path<String>) -> Resul
 async fn dispute(State(state): State<AppState>, Path(token): Path<String>) -> Result<Response, PageError> {
     let link = state.links.open(&token).await?;
     state.actions.dispute(link.business, link.debtor).await?;
+    Ok(Redirect::to(&format!("/d/{token}")).into_response())
+}
+
+/// "Stop emailing me" (G4).
+async fn stop(State(state): State<AppState>, Path(token): Path<String>) -> Result<Response, PageError> {
+    let link = state.links.open(&token).await?;
+    state.actions.stop(link.business, link.debtor).await?;
     Ok(Redirect::to(&format!("/d/{token}")).into_response())
 }
 

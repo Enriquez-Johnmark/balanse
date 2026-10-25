@@ -147,3 +147,25 @@ async fn g3_a_dispute_stops_reminders_and_later_messages_say_so(pool: PgPool) {
         .unwrap();
     assert_eq!(notice, "Lito (Santos Trading) disputes what they owe");
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g4_stop_emailing_me_stops_email_for_good(pool: PgPool) {
+    let world = world(&pool).await;
+    let outcomes = balanse::balanse::outcomes::Outcomes::new(pool.clone(), world.clock.clone());
+
+    world.actions(&pool).stop(world.business, world.debtor).await.unwrap();
+    let resumed = outcomes.resume(world.business, world.debtor, "ana@reyes.test").await;
+    world.clock.advance(time::Duration::days(8));
+    common::scheduler(&pool, &world.clock).run().await.unwrap();
+
+    assert_eq!(state(&pool, world.debtor).await, "opted_out");
+    assert!(resumed.is_err(), "the Owner alone can't turn it back on");
+    assert_eq!(
+        messages(&pool).await,
+        [
+            ("ana@reyes.test".to_owned(), "approved".to_owned()),
+            ("lito@santos.test".to_owned(), "cancelled".to_owned())
+        ],
+        "no new reminder is drafted"
+    );
+}

@@ -43,8 +43,9 @@ pub struct Reminder<'a> {
     pub business_name: &'a str,
 }
 
-/// The reminder's wording, listing every Debt in `debts` (C2).
-pub fn reminder(reminder: &Reminder<'_>, debts: &[DebtLine]) -> Wording {
+/// The reminder's wording, listing every Debt in `debts` (C2) and linking
+/// to the Debtor's page at `page_url` (G1).
+pub fn reminder(reminder: &Reminder<'_>, debts: &[DebtLine], page_url: &str) -> Wording {
     let taglish = reminder.language == "taglish";
     let invoices = match debts {
         [one] => format!("invoice {}", one.invoice_number),
@@ -58,8 +59,13 @@ pub fn reminder(reminder: &Reminder<'_>, debts: &[DebtLine]) -> Wording {
         (false, _) => format!("Reminder: {invoices} from {business}"),
     };
     let (opening, closing) = lines(taglish, reminder.step);
+    let page = if taglish {
+        "Makikita po dito ang mga detalye at kung paano magbayad:"
+    } else {
+        "You can see the details and how to pay here:"
+    };
     let body = format!(
-        "{greeting} {name},\n\n{opening}\n\n{list}\n\n{closing}\n\n{business}\n\n{footer}\n",
+        "{greeting} {name},\n\n{opening}\n\n{list}\n\n{page} {page_url}\n\n{closing}\n\n{business}\n\n{footer}\n",
         greeting = "Hi",
         name = reminder.contact_name,
         list = debt_block(debts),

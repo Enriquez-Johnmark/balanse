@@ -60,8 +60,30 @@ pub fn app(pool: &PgPool, clock: &Arc<FixedClock>) -> axum::Router {
     balanse::balanse::web::router(balanse::balanse::web::AppState::new(
         pool.clone(),
         clock.clone(),
+        &master(),
         BASE_URL,
     ))
+}
+
+/// The test master key.
+pub fn master() -> balanse::engine::files::MasterKey {
+    balanse::engine::files::MasterKey::from_hex(&"ab".repeat(32)).unwrap()
+}
+
+/// Links to Debtor pages at [`BASE_URL`].
+pub fn links(pool: &PgPool, clock: &Arc<FixedClock>) -> balanse::balanse::debtor_links::DebtorLinks {
+    balanse::balanse::debtor_links::DebtorLinks::new(pool.clone(), clock.clone(), &master(), BASE_URL)
+}
+
+/// Reply addresses at `reply.balanse.test`.
+pub fn reply_addresses() -> balanse::balanse::reminders::ReplyAddresses {
+    let signer = Arc::new(balanse::engine::signed::Signer::new(&master(), "test replies"));
+    balanse::balanse::reminders::ReplyAddresses::new(signer, "reply.balanse.test")
+}
+
+/// The scheduler, drafting reminders with reply addresses and page links.
+pub fn scheduler(pool: &PgPool, clock: &Arc<FixedClock>) -> balanse::balanse::reminders::Scheduler {
+    balanse::balanse::reminders::Scheduler::new(pool.clone(), clock.clone(), reply_addresses(), links(pool, clock))
 }
 
 /// A response's status and body.

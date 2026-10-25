@@ -14,9 +14,7 @@ use balanse::balanse::outcomes::Outcomes;
 use balanse::balanse::reminders::{ReplyAddresses, Scheduler};
 use balanse::balanse::replies::{Replies, ReplyOutcome};
 use balanse::engine::clock::FixedClock;
-use balanse::engine::files::MasterKey;
 use balanse::engine::inbound::InboundEmail;
-use balanse::engine::signed::Signer;
 use common::{business, clock};
 use sqlx::PgPool;
 use time::Duration;
@@ -64,9 +62,8 @@ async fn world(pool: &PgPool) -> World {
         )
         .await
         .unwrap();
-    let master = MasterKey::from_hex(&"ab".repeat(32)).unwrap();
-    let replies = ReplyAddresses::new(Arc::new(Signer::new(&master, "test replies")), "reply.balanse.test");
-    let scheduler = Scheduler::new(pool.clone(), clock.clone(), replies.clone());
+    let replies = common::reply_addresses();
+    let scheduler = common::scheduler(pool, &clock);
     scheduler.run().await.unwrap();
     let reply_to: String = sqlx::query_scalar("select reply_to from outbox_messages")
         .fetch_one(pool)
@@ -88,7 +85,7 @@ impl World {
             pool.clone(),
             self.clock.clone(),
             self.replies.clone(),
-            "https://app.balanse.test",
+            common::links(pool, &self.clock),
         )
     }
 

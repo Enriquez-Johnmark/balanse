@@ -13,13 +13,10 @@ use balanse::balanse::debtors::{DebtorId, DebtorInput, Debtors};
 use balanse::balanse::debts::{DebtInput, Debts};
 use balanse::balanse::drafts::approve_batch;
 use balanse::balanse::presend::BalanseChecks;
-use balanse::balanse::reminders::{ReplyAddresses, Scheduler};
 use balanse::engine::clock::FixedClock;
-use balanse::engine::files::MasterKey;
 use balanse::engine::ids::MessageId;
 use balanse::engine::mail::Email;
 use balanse::engine::outbox::{MessageStatus, Outbox, OutboxError, Sender};
-use balanse::engine::signed::Signer;
 use common::{RecordingMailer, business, clock};
 use sqlx::PgPool;
 use time::Duration;
@@ -69,12 +66,7 @@ async fn world_at(pool: &PgPool, shift: Duration) -> (World, MessageId) {
         )
         .await
         .unwrap();
-    let master = MasterKey::from_hex(&"ab".repeat(32)).unwrap();
-    let replies = ReplyAddresses::new(Arc::new(Signer::new(&master, "test replies")), "reply.balanse.test");
-    Scheduler::new(pool.clone(), clock.clone(), replies)
-        .run()
-        .await
-        .unwrap();
+    common::scheduler(pool, &clock).run().await.unwrap();
     let message: uuid::Uuid = sqlx::query_scalar("select message_id from reminders")
         .fetch_one(pool)
         .await
@@ -100,7 +92,7 @@ impl World {
                 id,
                 "ana@reyes.test",
                 &seen,
-                &BalanseChecks::for_approval(pool.clone()),
+                &BalanseChecks::for_approval(pool.clone(), common::links(pool, &self.clock)),
             )
             .await
     }
@@ -117,7 +109,11 @@ impl World {
     /// Runs the sender once and returns what it sent.
     async fn drain(&self, pool: &PgPool) -> Vec<Email> {
         let mailer = RecordingMailer::default();
-        let checks = Arc::new(BalanseChecks::for_sending(pool.clone(), self.clock.clone()));
+        let checks = Arc::new(BalanseChecks::for_sending(
+            pool.clone(),
+            self.clock.clone(),
+            common::links(pool, &self.clock),
+        ));
         Sender::new(pool.clone(), mailer.clone(), self.clock.clone(), checks)
             .drain_once(10)
             .await
@@ -167,7 +163,7 @@ async fn d2_batch_approval_skips_a_draft_that_changed_since_it_was_shown(pool: P
         world.business,
         &[(id, seen)],
         "ana@reyes.test",
-        &BalanseChecks::for_approval(pool.clone()),
+        &BalanseChecks::for_approval(pool.clone(), common::links(&pool, &world.clock)),
     )
     .await;
 
@@ -299,12 +295,7 @@ async fn c5_an_approved_reminder_still_goes_out_after_its_draft_deadline(pool: P
     world.approve(&pool, id).await.unwrap();
     let at_night = world.drain(&pool).await.len();
     world.clock.advance(Duration::hours(11)); // Thursday 08:00 Manila
-    let master = MasterKey::from_hex(&"ab".repeat(32)).unwrap();
-    let replies = ReplyAddresses::new(Arc::new(Signer::new(&master, "test replies")), "reply.balanse.test");
-    Scheduler::new(pool.clone(), world.clock.clone(), replies)
-        .run()
-        .await
-        .unwrap();
+    common::scheduler(&pool, &world.clock).run().await.unwrap();
 
     let in_the_morning = world.drain(&pool).await.len();
 
@@ -339,4 +330,20 @@ async fn c7_a_reminder_held_for_sending_hours_is_cancelled_by_the_owners_decisio
         world.outbox.get(world.business, id).await.unwrap().status,
         MessageStatus::Cancelled
     );
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn d4_a_link_to_anything_but_the_debtors_page_is_refused(pool: PgPool) {
+    let (world, id) = world(&pool).await;
+    // The page link, with its signature altered.
+    world
+        .edit(id, |email| {
+            let link = email.body_text.find("http://balanse.test/d/").unwrap();
+            email.body_text.replace_range(link + 22..link + 24, "00");
+        })
+        .await;
+
+    let err = world.approve(&pool, id).await.unwrap_err();
+
+    assert!(matches!(err, OutboxError::CheckFailed(_)), "got {err:?}");
 }

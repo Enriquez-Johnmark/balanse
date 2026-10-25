@@ -5,7 +5,7 @@
 //! A reminder must (D4, D7, R2–R3, R9):
 //! - go to its Debtor's stored Contact, one address only;
 //! - be for a Debtor that is still active (C7);
-//! - carry no link;
+//! - carry one link, the Debtor's own page, and no other;
 //! - list the Debtor's open Debts exactly as Balanse writes them;
 //! - come from the Business's name and keep Balanse's footer.
 //!
@@ -24,6 +24,7 @@ use sqlx::PgPool;
 use time::macros::time;
 use time::{Date, Duration, OffsetDateTime, Weekday};
 
+use super::debtor_links::DebtorLinks;
 use super::reminders::{MANILA, open_debts, sent_dates};
 use super::schedule::cap_allows;
 use super::wording::{debt_block, footer};
@@ -37,6 +38,7 @@ use crate::engine::outbox::{BoxFuture, CheckFailed, PreSendCheck, links};
 #[derive(Clone)]
 pub struct BalanseChecks {
     pool: PgPool,
+    links: DebtorLinks,
     /// Set when checking at sending time, for the time rules.
     sending: Option<Arc<dyn Clock>>,
 }
@@ -44,15 +46,20 @@ pub struct BalanseChecks {
 impl BalanseChecks {
     /// The rules at approval: everything but the time of day and the cap,
     /// so an Owner can approve in the evening (C5).
-    pub fn for_approval(pool: PgPool) -> Self {
-        Self { pool, sending: None }
+    pub fn for_approval(pool: PgPool, links: DebtorLinks) -> Self {
+        Self {
+            pool,
+            links,
+            sending: None,
+        }
     }
 
     /// The rules at sending: everything, including the time of day and the
     /// cap.
-    pub fn for_sending(pool: PgPool, clock: Arc<dyn Clock>) -> Self {
+    pub fn for_sending(pool: PgPool, clock: Arc<dyn Clock>, links: DebtorLinks) -> Self {
         Self {
             pool,
+            links,
             sending: Some(clock),
         }
     }
@@ -85,13 +92,18 @@ impl BalanseChecks {
         if reminder.state != "active" {
             return refuse(format!("the Debtor is {}", reminder.state.replace('_', " ")));
         }
-        if !links(&email.subject).is_empty() || !links(&email.body_text).is_empty() {
-            return refuse("reminders can't contain links".to_owned());
+        let debtor = reminder.debtor_id.into();
+        let own = self.links.current_urls(tenant, debtor).await.map_err(unavailable)?;
+        let in_body = links(&email.body_text);
+        if !links(&email.subject).is_empty() || in_body.iter().any(|link| !own.iter().any(|url| url == link)) {
+            return refuse("the only link allowed is the Debtor's own page".to_owned());
+        }
+        if in_body.is_empty() {
+            return refuse("the link to the Debtor's page is missing".to_owned());
         }
         if email.from_name != reminder.business_name {
             return refuse("it must come from the Business's name".to_owned());
         }
-        let debtor = reminder.debtor_id.into();
         let debts = open_debts(&self.pool, tenant, debtor).await.map_err(unavailable)?;
         if debts.is_empty() {
             return refuse("the Debtor has no open Debts".to_owned());

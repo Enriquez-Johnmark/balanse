@@ -71,6 +71,11 @@ impl DebtorLinks {
         }
     }
 
+    /// Where the app is, e.g. `https://app.balanseapp.com`.
+    pub fn base_url(&self) -> &str {
+        &self.base_url
+    }
+
     /// The URL of link `id`.
     pub fn url(&self, id: DebtorLinkId) -> String {
         format!("{}/d/{}", self.base_url, self.signer.token(id.as_uuid()))

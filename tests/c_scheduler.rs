@@ -10,19 +10,15 @@ use std::sync::Arc;
 use balanse::balanse::businesses::BusinessId;
 use balanse::balanse::debtors::{DebtorId, DebtorInput, Debtors};
 use balanse::balanse::debts::{DebtInput, Debts};
-use balanse::balanse::reminders::{ReplyAddresses, Scheduler};
+use balanse::balanse::reminders::Scheduler;
 use balanse::engine::clock::{Clock, FixedClock};
-use balanse::engine::files::MasterKey;
-use balanse::engine::signed::Signer;
 use common::{business, clock};
 use sqlx::PgPool;
 use time::Duration;
 use time::macros::datetime;
 
 fn scheduler(pool: &PgPool, clock: &Arc<FixedClock>) -> Scheduler {
-    let master = MasterKey::from_hex(&"ab".repeat(32)).unwrap();
-    let replies = ReplyAddresses::new(Arc::new(Signer::new(&master, "test replies")), "reply.balanse.test");
-    Scheduler::new(pool.clone(), clock.clone(), replies)
+    common::scheduler(pool, &clock)
 }
 
 async fn debtor(pool: &PgPool, clock: &Arc<FixedClock>, business: BusinessId) -> DebtorId {
@@ -291,4 +287,24 @@ async fn b3_a_changed_amount_redrafts_the_waiting_reminder_with_it(pool: PgPool)
     .await
     .unwrap();
     assert_eq!(step, "first", "still the friendly first reminder");
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g1_every_reminder_carries_the_debtors_page_link(pool: PgPool) {
+    let clock = clock();
+    let business = business(&pool, &clock).await;
+    let debtor = debtor(&pool, &clock, business).await;
+    debt(&pool, &clock, business, debtor, "INV-1").await;
+
+    scheduler(&pool, &clock).run().await.unwrap();
+
+    let urls = common::links(&pool, &clock)
+        .current_urls(business, debtor)
+        .await
+        .unwrap();
+    let drafts = drafts(&pool).await;
+    assert!(
+        urls.len() == 1 && drafts[0].2.contains(&urls[0]),
+        "{urls:?} in {drafts:?}"
+    );
 }

@@ -16,6 +16,7 @@ use std::sync::Arc;
 use serde_json::json;
 use sqlx::PgPool;
 
+use super::debtor_links::DebtorLinks;
 use super::debtors::DebtorId;
 use super::presend::BalanseChecks;
 use super::reminders::{ReminderId, ReplyAddresses, cancel_waiting};
@@ -65,19 +66,19 @@ pub struct Replies {
     clock: Arc<dyn Clock>,
     outbox: Outbox,
     addresses: ReplyAddresses,
-    base_url: String,
+    links: DebtorLinks,
 }
 
 impl Replies {
-    /// Replies matched with `addresses`; notices link to the app at
-    /// `base_url`.
-    pub fn new(pool: PgPool, clock: Arc<dyn Clock>, addresses: ReplyAddresses, base_url: &str) -> Self {
+    /// Replies matched with `addresses`; notices link to the app where
+    /// `links` point.
+    pub fn new(pool: PgPool, clock: Arc<dyn Clock>, addresses: ReplyAddresses, links: DebtorLinks) -> Self {
         Self {
             outbox: Outbox::new(pool.clone(), clock.clone()),
             pool,
             clock,
             addresses,
-            base_url: base_url.trim_end_matches('/').to_owned(),
+            links,
         }
     }
 
@@ -150,7 +151,7 @@ impl Replies {
                  {base}/debtors/{id}\n\nReminders to {debtor} are paused until you decide what happens next.\n",
                 contact = found.contact_name,
                 debtor = found.debtor_name,
-                base = self.base_url,
+                base = self.links.base_url(),
                 id = found.debtor_id,
             ),
         };
@@ -177,7 +178,7 @@ impl Replies {
         if message.status != MessageStatus::Draft {
             return Ok(());
         }
-        let checks = BalanseChecks::for_approval(self.pool.clone());
+        let checks = BalanseChecks::for_approval(self.pool.clone(), self.links.clone());
         match self
             .outbox
             .approve(tenant, notice, NOTICE_APPROVER, &message.content_hash(), &checks)

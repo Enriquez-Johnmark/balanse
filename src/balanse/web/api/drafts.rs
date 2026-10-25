@@ -142,7 +142,7 @@ async fn approve(
             }),
         }
     }
-    let checks = BalanseChecks::for_approval(state.pool.clone());
+    let checks = BalanseChecks::for_approval(state.pool.clone(), state.links.clone());
     let results = approve_batch(&state.outbox, member.tenant, &seen, &member.email, &checks).await;
     let mut any = false;
     for (id, result) in results {

@@ -9,10 +9,7 @@ use std::sync::Arc;
 
 use axum::http::StatusCode;
 use balanse::balanse::businesses::create_business;
-use balanse::balanse::reminders::{ReplyAddresses, Scheduler};
 use balanse::engine::clock::FixedClock;
-use balanse::engine::files::MasterKey;
-use balanse::engine::signed::Signer;
 use common::{app, business, call, clock, log_in};
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -44,12 +41,7 @@ async fn with_a_draft(pool: &PgPool, clock: &Arc<FixedClock>) -> (axum::Router, 
         Some(&cookie),
     )
     .await;
-    let master = MasterKey::from_hex(&"ab".repeat(32)).unwrap();
-    let replies = ReplyAddresses::new(Arc::new(Signer::new(&master, "test replies")), "reply.balanse.test");
-    Scheduler::new(pool.clone(), clock.clone(), replies)
-        .run()
-        .await
-        .unwrap();
+    common::scheduler(&pool, &clock).run().await.unwrap();
     let drafts = call(&app, "GET", "/api/drafts", None, Some(&cookie)).await.body;
     (app, cookie, drafts)
 }

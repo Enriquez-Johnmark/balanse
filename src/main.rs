@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use balanse::balanse::account_emails::welcome_email;
+use balanse::balanse::debtor_links::DebtorLinks;
 use balanse::balanse::presend::BalanseChecks;
 use balanse::balanse::reminders::{MANILA, ReplyAddresses, Scheduler};
 use balanse::balanse::replies::Replies;
@@ -63,7 +64,8 @@ async fn run() -> anyhow::Result<()> {
             println!("migrations applied");
         }
         "outbox-drain" => {
-            let checks = Arc::new(BalanseChecks::for_sending(pool.clone(), clock.clone()));
+            let links = debtor_links(&config, &pool, &clock)?;
+            let checks = Arc::new(BalanseChecks::for_sending(pool.clone(), clock.clone(), links));
             let mut sender = Sender::new(pool, config.mailer()?, clock, checks);
             if let Some(budget) = config.send_budget() {
                 sender = sender.with_budget(budget);
@@ -72,7 +74,8 @@ async fn run() -> anyhow::Result<()> {
             println!("{report:?}");
         }
         "schedule" => {
-            let report = Scheduler::new(pool, clock, reply_addresses(&config)?)
+            let links = debtor_links(&config, &pool, &clock)?;
+            let report = Scheduler::new(pool, clock, reply_addresses(&config)?, links)
                 .run()
                 .await
                 .context("drafting")?;
@@ -98,9 +101,8 @@ async fn run() -> anyhow::Result<()> {
                 .get(business)
                 .await?
                 .owner_email;
-            Logins::new(pool.clone(), clock)
-                .send_link(&owner, welcome, &BalanseChecks::for_approval(pool))
-                .await?;
+            let checks = BalanseChecks::for_approval(pool.clone(), debtor_links(&config, &pool, &clock)?);
+            Logins::new(pool, clock).send_link(&owner, welcome, &checks).await?;
             println!("approved {business}; a welcome link is on its way to {owner}");
         }
         "decline-signup" => {
@@ -118,6 +120,16 @@ fn request_id() -> anyhow::Result<RequestId> {
     let text = std::env::args().nth(2).context(USAGE)?;
     let id: uuid::Uuid = text.parse().context("not a request ID")?;
     Ok(RequestId::from(id))
+}
+
+/// The signed links to Debtor pages that reminders carry.
+fn debtor_links(config: &Config, pool: &sqlx::PgPool, clock: &Arc<dyn Clock>) -> anyhow::Result<DebtorLinks> {
+    Ok(DebtorLinks::new(
+        pool.clone(),
+        clock.clone(),
+        &config.master_key()?,
+        &config.public_base_url,
+    ))
 }
 
 /// The signed reply addresses reminders carry.
@@ -145,7 +157,8 @@ async fn dev_schedule(config: &Config, pool: sqlx::PgPool) -> anyhow::Result<()>
     };
     balanse::MIGRATOR.run(&pool).await.context("running migrations")?;
     let clock: Arc<dyn Clock> = Arc::new(FixedClock::new(date.with_hms(7, 30, 0)?.assume_offset(MANILA)));
-    let report = Scheduler::new(pool, clock, reply_addresses(config)?)
+    let links = debtor_links(config, &pool, &clock)?;
+    let report = Scheduler::new(pool, clock, reply_addresses(config)?, links)
         .run()
         .await
         .context("drafting")?;
@@ -160,16 +173,23 @@ async fn dev_schedule(config: &Config, pool: sqlx::PgPool) -> anyhow::Result<()>
 async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> anyhow::Result<()> {
     balanse::MIGRATOR.run(&pool).await.context("running migrations")?;
     let addresses = reply_addresses(config)?;
-    let mut state = AppState::new(pool.clone(), clock.clone(), &config.public_base_url).with_web_dir(&config.web_dir);
+    let links = debtor_links(config, &pool, &clock)?;
+    let mut state = AppState::new(
+        pool.clone(),
+        clock.clone(),
+        &config.master_key()?,
+        &config.public_base_url,
+    )
+    .with_web_dir(&config.web_dir);
     if let Some(secret) = &config.inbound_secret {
-        let replies = Replies::new(pool.clone(), clock.clone(), addresses.clone(), &config.public_base_url);
+        let replies = Replies::new(pool.clone(), clock.clone(), addresses.clone(), links.clone());
         state = state.with_inbound(secret.clone(), replies);
     } else {
         tracing::warn!("INBOUND_SECRET isn't set: replies aren't taken in");
     }
     let wake = state.sender_wake_up();
 
-    let checks = Arc::new(BalanseChecks::for_sending(pool.clone(), clock.clone()));
+    let checks = Arc::new(BalanseChecks::for_sending(pool.clone(), clock.clone(), links.clone()));
     let mut sender = Sender::new(pool.clone(), config.mailer()?, clock.clone(), checks);
     if let Some(budget) = config.send_budget() {
         sender = sender.with_budget(budget);
@@ -183,7 +203,7 @@ async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> an
             let _ = tokio::time::timeout(DRAIN_EVERY, wake.notified()).await;
         }
     });
-    let scheduler = Scheduler::new(pool, clock, addresses);
+    let scheduler = Scheduler::new(pool, clock, addresses, links);
     tokio::spawn(async move {
         loop {
             if let Err(err) = scheduler.run().await {

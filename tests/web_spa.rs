@@ -21,7 +21,7 @@ fn built_app() -> tempfile::TempDir {
 }
 
 async fn get(pool: &PgPool, web_dir: &std::path::Path, path: &str) -> (StatusCode, HeaderMap, String) {
-    let state = AppState::new(pool.clone(), common::clock(), common::BASE_URL).with_web_dir(web_dir);
+    let state = AppState::new(pool.clone(), common::clock(), &common::master(), common::BASE_URL).with_web_dir(web_dir);
     let response = router(state)
         .oneshot(Request::get(path).body(Body::empty()).unwrap())
         .await

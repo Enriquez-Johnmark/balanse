@@ -19,6 +19,7 @@ use time::macros::{offset, time};
 use time::{Date, Duration, OffsetDateTime, Time, UtcOffset};
 
 use super::businesses::BusinessId;
+use super::debtor_links::DebtorLinks;
 use super::debtors::DebtorId;
 use super::schedule::{Next, Plan, Step, plan};
 use super::wording::{self, DebtLine, Reminder};
@@ -103,6 +104,7 @@ pub struct Scheduler {
     clock: Arc<dyn Clock>,
     outbox: Outbox,
     replies: ReplyAddresses,
+    links: DebtorLinks,
 }
 
 /// An active Debtor with open Debts, as the run finds it.
@@ -124,12 +126,13 @@ struct Candidate {
 impl Scheduler {
     /// A scheduler over `pool`, giving each reminder a reply address from
     /// `replies`.
-    pub fn new(pool: PgPool, clock: Arc<dyn Clock>, replies: ReplyAddresses) -> Self {
+    pub fn new(pool: PgPool, clock: Arc<dyn Clock>, replies: ReplyAddresses, links: DebtorLinks) -> Self {
         Self {
             outbox: Outbox::new(pool.clone(), clock.clone()),
             pool,
             clock,
             replies,
+            links,
         }
     }
 
@@ -287,6 +290,7 @@ impl Scheduler {
         now: OffsetDateTime,
     ) -> Result<(), SchedulerError> {
         let debts = open_debts(&self.pool, c.business, c.debtor).await?;
+        let page_url = self.links.issue(c.business, c.debtor).await?;
         let wording = wording::reminder(
             &Reminder {
                 step,
@@ -295,6 +299,7 @@ impl Scheduler {
                 business_name: &c.business_name,
             },
             &debts,
+            &page_url,
         );
         let id = ReminderId::new();
         let email = Email {

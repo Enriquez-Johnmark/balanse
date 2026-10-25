@@ -35,7 +35,7 @@ async fn request_link(State(state): State<AppState>, ApiJson(request): ApiJson<L
     // The lookup and the email happen after the answer, so neither the
     // answer nor how long it takes reveals who has an account (A1).
     tokio::spawn(async move {
-        let checks = BalanseChecks::for_approval(state.pool.clone());
+        let checks = BalanseChecks::for_approval(state.pool.clone(), state.links.clone());
         let base_url = state.base_url.clone();
         let compose = |link: &LoginLink<'_>| login_email(&base_url, link);
         match state.logins.send_link(&request.email, compose, &checks).await {

@@ -5,16 +5,11 @@
 
 mod common;
 
-use std::sync::Arc;
-
 use axum::http::StatusCode;
 use balanse::balanse::debtors::{DebtorInput, Debtors};
 use balanse::balanse::debts::{DebtInput, Debts};
-use balanse::balanse::reminders::{ReplyAddresses, Scheduler};
 use balanse::balanse::replies::Replies;
 use balanse::balanse::web::{AppState, router};
-use balanse::engine::files::MasterKey;
-use balanse::engine::signed::Signer;
 use common::{BASE_URL, business, clock};
 use hmac::{Hmac, KeyInit, Mac};
 use sqlx::PgPool;
@@ -53,18 +48,18 @@ async fn world(pool: &PgPool) -> (axum::Router, String) {
         )
         .await
         .unwrap();
-    let master = MasterKey::from_hex(&"ab".repeat(32)).unwrap();
-    let addresses = ReplyAddresses::new(Arc::new(Signer::new(&master, "test replies")), "reply.balanse.test");
-    Scheduler::new(pool.clone(), clock.clone(), addresses.clone())
-        .run()
-        .await
-        .unwrap();
+    common::scheduler(pool, &clock).run().await.unwrap();
     let reply_to: String = sqlx::query_scalar("select reply_to from outbox_messages")
         .fetch_one(pool)
         .await
         .unwrap();
-    let replies = Replies::new(pool.clone(), clock.clone(), addresses, BASE_URL);
-    let state = AppState::new(pool.clone(), clock, BASE_URL).with_inbound(SECRET.into(), replies);
+    let replies = Replies::new(
+        pool.clone(),
+        clock.clone(),
+        common::reply_addresses(),
+        common::links(pool, &clock),
+    );
+    let state = AppState::new(pool.clone(), clock, &common::master(), BASE_URL).with_inbound(SECRET.into(), replies);
     (router(state), reply_to)
 }
 

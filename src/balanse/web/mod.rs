@@ -26,12 +26,14 @@ use sqlx::PgPool;
 use tokio::sync::Notify;
 use tower_http::trace::TraceLayer;
 
+use crate::balanse::debtor_links::DebtorLinks;
 use crate::balanse::debtors::Debtors;
 use crate::balanse::debts::Debts;
 use crate::balanse::outcomes::Outcomes;
 use crate::balanse::replies::Replies;
 use crate::engine::accounts::{Logins, Signups};
 use crate::engine::clock::Clock;
+use crate::engine::files::MasterKey;
 use crate::engine::outbox::Outbox;
 
 /// The session cookie's name.
@@ -48,6 +50,7 @@ pub struct AppState {
     debts: Debts,
     outcomes: Outcomes,
     outbox: Outbox,
+    links: DebtorLinks,
     /// Where links in emails point, e.g. `https://app.balanseapp.com`.
     base_url: String,
     /// `scheme://host[:port]` of the base URL; posts must come from it.
@@ -69,8 +72,9 @@ struct Inbound {
 }
 
 impl AppState {
-    /// The app's state; links in emails point at `base_url`.
-    pub fn new(pool: PgPool, clock: Arc<dyn Clock>, base_url: &str) -> Self {
+    /// The app's state; links in emails point at `base_url`, and links to
+    /// Debtor pages are signed with a key derived from `master`.
+    pub fn new(pool: PgPool, clock: Arc<dyn Clock>, master: &MasterKey, base_url: &str) -> Self {
         let base_url = base_url.trim_end_matches('/').to_owned();
         let origin = match base_url.split_once("://") {
             Some((scheme, rest)) => format!("{scheme}://{}", rest.split('/').next().unwrap_or(rest)),
@@ -83,6 +87,7 @@ impl AppState {
             debts: Debts::new(pool.clone(), clock.clone()),
             outcomes: Outcomes::new(pool.clone(), clock.clone()),
             outbox: Outbox::new(pool.clone(), clock.clone()),
+            links: DebtorLinks::new(pool.clone(), clock.clone(), master, &base_url),
             secure_cookies: base_url.starts_with("https://"),
             wake_sender: Arc::new(Notify::new()),
             inbound: None,

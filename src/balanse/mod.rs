@@ -2,10 +2,12 @@
 
 pub mod account_emails;
 pub mod businesses;
+pub mod contact_actions;
 pub mod debtor_links;
 pub mod debtors;
 pub mod debts;
 pub mod drafts;
+pub mod notices;
 pub mod outcomes;
 pub mod presend;
 pub mod reminders;

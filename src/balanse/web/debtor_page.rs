@@ -14,11 +14,12 @@ use axum::Router;
 use axum::extract::{Path, Request, State};
 use axum::http::{HeaderValue, StatusCode, header};
 use axum::middleware::{self, Next};
-use axum::response::{IntoResponse, Response};
-use axum::routing::get;
+use axum::response::{IntoResponse, Redirect, Response};
+use axum::routing::{get, post};
 use time::macros::format_description;
 
 use super::AppState;
+use crate::balanse::contact_actions::ActionError;
 use crate::balanse::debtor_links::LinkError;
 use crate::balanse::debtors::DebtorError;
 use crate::balanse::reminders::open_debts;
@@ -26,6 +27,7 @@ use crate::balanse::reminders::open_debts;
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
         .route("/d/{token}", get(page))
+        .route("/d/{token}/paid", post(paid))
         .layer(middleware::from_fn(private))
 }
 
@@ -49,6 +51,10 @@ pub(super) struct Words {
     pub nothing_open: &'static str,
     pub how_to_pay: &'static str,
     pub ask_them: &'static str,
+    pub paid: &'static str,
+    pub claimed: &'static str,
+    pub disputed: &'static str,
+    pub stopped: &'static str,
 }
 
 const TAGLISH: Words = Words {
@@ -60,6 +66,10 @@ const TAGLISH: Words = Words {
     nothing_open: "Wala na pong natitirang balanse. Salamat po!",
     how_to_pay: "Paano magbayad",
     ask_them: "I-reply lang po sa email para sa detalye ng pagbabayad.",
+    paid: "Nagbayad na po ako",
+    claimed: "Salamat po! Sinabi na namin na nagbayad na kayo; kukumpirmahin nila ito.",
+    disputed: "Naitala na po na may dispute kayo; hindi na po kayo papadalhan ng paalala hangga't hindi ito naaayos.",
+    stopped: "Hindi na po kayo makakatanggap ng email tungkol dito.",
 };
 
 const ENGLISH: Words = Words {
@@ -71,6 +81,10 @@ const ENGLISH: Words = Words {
     nothing_open: "Nothing is outstanding. Thank you!",
     how_to_pay: "How to pay",
     ask_them: "Reply to the email for payment details.",
+    paid: "I've paid",
+    claimed: "Thank you! We've let them know you've paid; they'll confirm it.",
+    disputed: "Your dispute is noted; you won't get reminders until it's sorted out.",
+    stopped: "You won't get any more emails about this.",
 };
 
 pub(super) fn words(language: &str) -> &'static Words {
@@ -89,10 +103,16 @@ pub(super) struct DebtItem {
 #[template(path = "debtor_page.html")]
 struct DebtorPage {
     w: &'static Words,
+    /// The page's own path, where its buttons post.
+    path: String,
     business: String,
     contact: String,
     debts: Vec<DebtItem>,
     instructions: String,
+    /// What the Contact already did, if anything.
+    status: Option<&'static str>,
+    /// Whether the buttons are shown: not after the Contact acted.
+    can_act: bool,
 }
 
 #[derive(Template, WebTemplate)]
@@ -127,6 +147,15 @@ impl From<DebtorError> for PageError {
     fn from(err: DebtorError) -> Self {
         match err {
             DebtorError::NotFound => Self::NotFound,
+            other => Self::internal(other),
+        }
+    }
+}
+
+impl From<ActionError> for PageError {
+    fn from(err: ActionError) -> Self {
+        match err {
+            ActionError::NotFound => Self::NotFound,
             other => Self::internal(other),
         }
     }
@@ -176,12 +205,30 @@ async fn page(State(state): State<AppState>, Path(token): Path<String>) -> Resul
             ),
         })
         .collect();
+    let w = words(&debtor.language);
+    let status = match debtor.state.as_str() {
+        "payment_claimed" => Some(w.claimed),
+        "disputed" => Some(w.disputed),
+        "opted_out" => Some(w.stopped),
+        _ => None,
+    };
     Ok(DebtorPage {
-        w: words(&debtor.language),
+        w,
+        path: format!("/d/{token}"),
         business: settings.name,
         contact: debtor.contact_name,
         debts,
         instructions: settings.payment_instructions,
+        status,
+        can_act: status.is_none() && debtor.state != "bounced",
     }
     .into_response())
+}
+
+/// "I've paid" (G2). Back to the page afterwards, so a refresh never
+/// repeats it.
+async fn paid(State(state): State<AppState>, Path(token): Path<String>) -> Result<Response, PageError> {
+    let link = state.links.open(&token).await?;
+    state.actions.claim_paid(link.business, link.debtor).await?;
+    Ok(Redirect::to(&format!("/d/{token}")).into_response())
 }

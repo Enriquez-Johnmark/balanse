@@ -65,3 +65,4 @@ button:disabled { opacity: .6; }
 .footer a { color: inherit; }
 h2 { font-size: 1.05rem; margin: 0 0 .25rem; }
 .instructions { white-space: pre-wrap; }
+.actions form + form button { margin-top: .75rem; background: #fff; color: var(--text); border: 1px solid var(--border); }

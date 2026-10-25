@@ -155,3 +155,38 @@ async fn g1_a_forged_or_expired_link_shows_the_same_not_found_page(pool: PgPool)
     assert_eq!(forged, expired);
     assert!(forged.contains("This link doesn't work"), "{forged}");
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g2_pressing_i_have_paid_claims_payment_and_thanks_the_contact(pool: PgPool) {
+    let clock = clock();
+    let path = santos_page(&pool, &clock).await;
+    let app = common::app(&pool, &clock);
+
+    let (status, location) = common::post_page(&app, &format!("{path}/paid")).await;
+    let (_, page) = common::get_page(&app, &path).await;
+
+    assert_eq!((status.as_u16(), location.as_deref()), (303, Some(path.as_str())));
+    assert!(page.contains("confirm it"), "{page}");
+    assert!(!page.contains("/paid\""), "the button is gone: {page}");
+    let state: String = sqlx::query_scalar("select state from debtors")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(state, "payment_claimed");
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g1_a_forged_link_cant_claim_payment(pool: PgPool) {
+    let clock = clock();
+    let path = santos_page(&pool, &clock).await;
+    let app = common::app(&pool, &clock);
+
+    let (status, _) = common::post_page(&app, &format!("{}00/paid", &path[..path.len() - 2])).await;
+
+    assert_eq!(status.as_u16(), 404);
+    let state: String = sqlx::query_scalar("select state from debtors")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(state, "active");
+}

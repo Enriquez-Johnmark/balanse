@@ -4,6 +4,7 @@
 {% block body %}
 <h1>{{ w.title }} {{ business }}</h1>
 <p class="muted">{{ w.hello }} {{ contact }}.</p>
+{% if let Some(status) = status %}<p class="sent">{{ status }}</p>{% endif %}
 <section class="card">
 <h2>{{ w.invoices }}</h2>
 {% if debts.is_empty() %}
@@ -24,4 +25,9 @@
 <p class="instructions">{{ instructions }}</p>
 {% endif %}
 </section>
+{% if can_act %}
+<section class="card actions">
+<form method="post" action="{{ path }}/paid"><button type="submit">{{ w.paid }}</button></form>
+</section>
+{% endif %}
 {% endblock %}

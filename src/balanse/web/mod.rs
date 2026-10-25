@@ -28,6 +28,7 @@ use sqlx::PgPool;
 use tokio::sync::Notify;
 use tower_http::trace::TraceLayer;
 
+use crate::balanse::contact_actions::ContactActions;
 use crate::balanse::debtor_links::DebtorLinks;
 use crate::balanse::debtors::Debtors;
 use crate::balanse::debts::Debts;
@@ -53,6 +54,7 @@ pub struct AppState {
     outcomes: Outcomes,
     outbox: Outbox,
     links: DebtorLinks,
+    actions: ContactActions,
     /// Where links in emails point, e.g. `https://app.balanseapp.com`.
     base_url: String,
     /// `scheme://host[:port]` of the base URL; posts must come from it.
@@ -90,6 +92,11 @@ impl AppState {
             outcomes: Outcomes::new(pool.clone(), clock.clone()),
             outbox: Outbox::new(pool.clone(), clock.clone()),
             links: DebtorLinks::new(pool.clone(), clock.clone(), master, &base_url),
+            actions: ContactActions::new(
+                pool.clone(),
+                clock.clone(),
+                DebtorLinks::new(pool.clone(), clock.clone(), master, &base_url),
+            ),
             secure_cookies: base_url.starts_with("https://"),
             wake_sender: Arc::new(Notify::new()),
             inbound: None,

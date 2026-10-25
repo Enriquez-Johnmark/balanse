@@ -185,3 +185,19 @@ pub async fn get_page(app: &axum::Router, path: &str) -> (axum::http::StatusCode
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
     (status, String::from_utf8_lossy(&body).into_owned())
 }
+
+/// `POST path` with no body and no cookie, as the Debtor page's buttons
+/// do, from our own origin: the status and the `Location` header.
+pub async fn post_page(app: &axum::Router, path: &str) -> (axum::http::StatusCode, Option<String>) {
+    use tower::ServiceExt;
+    let request = axum::http::Request::post(path)
+        .header("origin", BASE_URL)
+        .body(axum::body::Body::empty())
+        .unwrap();
+    let response = app.clone().oneshot(request).await.unwrap();
+    let location = response
+        .headers()
+        .get("location")
+        .map(|value| value.to_str().unwrap().to_owned());
+    (response.status(), location)
+}

@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select d.contact_name, d.business_name as debtor_name, m.email as owner_email\n         from debtors d\n         join accounts a on a.tenant_id = d.tenant_id and a.closed_at is null\n         join account_members m on m.tenant_id = d.tenant_id and m.role = 'owner'\n         where d.tenant_id = $1 and d.id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "contact_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "debtor_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "business_name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "owner_email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "account_members",
+            "name": "email"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a80fd1a1f361dd4296522d2be8e27146380900fa4ffa629a0f4cf8c49d27f7af"
+}

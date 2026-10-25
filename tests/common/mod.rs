@@ -2,6 +2,8 @@
 
 #![allow(dead_code, reason = "each test binary uses a different subset")]
 
+pub mod clamd;
+
 use std::sync::Arc;
 
 use balanse::balanse::businesses::{BusinessId, create_business};
@@ -200,4 +202,15 @@ pub async fn post_page(app: &axum::Router, path: &str) -> (axum::http::StatusCod
         .get("location")
         .map(|value| value.to_str().unwrap().to_owned());
     (response.status(), location)
+}
+
+/// Encrypted file storage in a temporary folder.
+pub fn files(pool: &PgPool, clock: &Arc<FixedClock>, dir: &std::path::Path) -> balanse::engine::files::Files {
+    use balanse::engine::files::{FileCipher, Files, LocalDisk};
+    Files::new(
+        pool.clone(),
+        clock.clone(),
+        Arc::new(LocalDisk::new(dir)),
+        Arc::new(FileCipher::new(&master())),
+    )
 }

@@ -10,6 +10,7 @@ pub mod drafts;
 pub mod notices;
 pub mod outcomes;
 pub mod presend;
+pub mod proofs;
 pub mod reminders;
 pub mod replies;
 pub mod schedule;

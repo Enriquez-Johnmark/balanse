@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select media_type, claim_id, uploaded_at from claim_files where id = $1 and tenant_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "media_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "claim_files",
+            "name": "media_type"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "claim_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "claim_files",
+            "name": "claim_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "uploaded_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "claim_files",
+            "name": "uploaded_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "fc241c59a822a7e9b884074853db84b3c9be35e55d0ad853fa714fe1236e62ff"
+}

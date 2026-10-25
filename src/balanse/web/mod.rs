@@ -1,5 +1,6 @@
 //! Balanse's web layer: the JSON API the React app calls (`api`) and the
-//! built React app itself (`spa`).
+//! built React app itself (`spa`), and the Debtor's page (`debtor_page`),
+//! server-rendered and opened by a signed link.
 //!
 //! - Every Business endpoint takes an [`api::ApiBusiness`] from the session
 //!   cookie and passes its ID to the repositories, so another Business's IDs
@@ -9,6 +10,7 @@
 //!   cross-site posts.
 
 mod api;
+mod debtor_page;
 mod hooks;
 mod spa;
 
@@ -127,6 +129,8 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .merge(api::routes())
         .merge(hooks::routes())
+        .merge(debtor_page::routes())
+        .route("/static/balanse.css", get(stylesheet))
         .route("/health", get(health))
         .fallback(spa::app)
         .layer(middleware::from_fn_with_state(state.clone(), same_origin_posts))
@@ -153,6 +157,14 @@ async fn security_headers(request: Request, next: Next) -> Response {
     headers.insert(header::X_FRAME_OPTIONS, HeaderValue::from_static("DENY"));
     headers.insert(header::REFERRER_POLICY, HeaderValue::from_static("same-origin"));
     response
+}
+
+/// The Debtor page's stylesheet (`static/balanse.css`), built into the binary.
+async fn stylesheet() -> impl IntoResponse {
+    (
+        [(header::CONTENT_TYPE, "text/css; charset=utf-8")],
+        include_str!("../../../static/balanse.css"),
+    )
 }
 
 /// "ok" while the database answers, for an uptime monitor.

@@ -79,3 +79,79 @@ async fn g1_a_link_about_to_expire_is_replaced_in_the_next_reminder(pool: PgPool
     assert!(links.open(token(&first)).await.is_ok(), "the old link still works");
     assert_eq!(links.current_urls(reyes, debtor).await.unwrap().len(), 2);
 }
+
+/// Reyes Creative, Santos Trading owing it INV-7, and the path of Santos's
+/// page link.
+async fn santos_page(pool: &PgPool, clock: &std::sync::Arc<balanse::engine::clock::FixedClock>) -> String {
+    let reyes = business(pool, clock).await;
+    let debtor = Debtors::new(pool.clone(), clock.clone())
+        .create(
+            reyes,
+            &DebtorInput {
+                business_name: "Santos Trading".to_owned(),
+                contact_name: "Lito".to_owned(),
+                contact_email: "lito@santos.test".to_owned(),
+                contact_mobile: String::new(),
+                language: "english".to_owned(),
+            },
+        )
+        .await
+        .unwrap();
+    balanse::balanse::debts::Debts::new(pool.clone(), clock.clone())
+        .create(
+            reyes,
+            debtor,
+            &balanse::balanse::debts::DebtInput {
+                invoice_number: "INV-7".to_owned(),
+                invoice_date: "2026-09-30".to_owned(),
+                amount: "₱12,500.00".to_owned(),
+                due_date: "2026-10-30".to_owned(),
+                note: "never shown".to_owned(),
+            },
+        )
+        .await
+        .unwrap();
+    sqlx::query("update businesses set payment_instructions = 'GCash 0917 123 4567 (Ana Reyes)'")
+        .execute(pool)
+        .await
+        .unwrap();
+    let url = common::links(pool, clock).issue(reyes, debtor).await.unwrap();
+    url.trim_start_matches(BASE_URL).to_owned()
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g1_the_page_shows_the_open_invoices_and_how_to_pay(pool: PgPool) {
+    let clock = clock();
+    let path = santos_page(&pool, &clock).await;
+    let app = common::app(&pool, &clock);
+
+    let (status, page) = common::get_page(&app, &path).await;
+
+    assert_eq!(status.as_u16(), 200);
+    for text in [
+        "Reyes Creative",
+        "Lito",
+        "INV-7",
+        "₱12,500.00",
+        "due 30 Oct 2026",
+        "GCash 0917 123 4567",
+    ] {
+        assert!(page.contains(text), "{text} missing from {page}");
+    }
+    assert!(!page.contains("never shown"), "the private note stays private");
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g1_a_forged_or_expired_link_shows_the_same_not_found_page(pool: PgPool) {
+    let clock = clock();
+    let path = santos_page(&pool, &clock).await;
+    let app = common::app(&pool, &clock);
+
+    let (forged_status, forged) = common::get_page(&app, &format!("{}00", &path[..path.len() - 2])).await;
+    clock.advance(WORKS_FOR);
+    let (expired_status, expired) = common::get_page(&app, &path).await;
+
+    assert_eq!((forged_status.as_u16(), expired_status.as_u16()), (404, 404));
+    assert_eq!(forged, expired);
+    assert!(forged.contains("This link doesn't work"), "{forged}");
+}

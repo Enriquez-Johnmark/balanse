@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block lang %}{{ w.lang }}{% endblock %}
+{% block title %}{{ business }} · Balanse{% endblock %}
+{% block body %}
+<h1>{{ w.title }} {{ business }}</h1>
+<p class="muted">{{ w.hello }} {{ contact }}.</p>
+<section class="card">
+<h2>{{ w.invoices }}</h2>
+{% if debts.is_empty() %}
+<p>{{ w.nothing_open }}</p>
+{% else %}
+<ul class="debts">
+{% for debt in debts %}
+  <li><span>{{ w.invoice }} {{ debt.invoice_number }}<br><small class="muted">{{ debt.dates }}</small></span><strong>{{ debt.amount }}</strong></li>
+{% endfor %}
+</ul>
+{% endif %}
+</section>
+<section class="card">
+<h2>{{ w.how_to_pay }}</h2>
+{% if instructions.is_empty() %}
+<p class="muted">{{ w.ask_them }}</p>
+{% else %}
+<p class="instructions">{{ instructions }}</p>
+{% endif %}
+</section>
+{% endblock %}

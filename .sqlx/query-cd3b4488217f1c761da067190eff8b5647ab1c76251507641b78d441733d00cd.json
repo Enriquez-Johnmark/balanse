@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select a.name, b.payment_instructions from businesses b\n         join accounts a on a.tenant_id = b.tenant_id\n         where b.tenant_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "payment_instructions",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "businesses",
+            "name": "payment_instructions"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "cd3b4488217f1c761da067190eff8b5647ab1c76251507641b78d441733d00cd"
+}

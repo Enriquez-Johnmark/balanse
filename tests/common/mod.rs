@@ -174,3 +174,14 @@ pub async fn database_url(pool: &PgPool) -> String {
     let (server, _) = base.rsplit_once('/').unwrap();
     format!("{server}/{name}")
 }
+
+/// `GET path` with no cookie, as a Contact's browser would: the status and
+/// the page's text.
+pub async fn get_page(app: &axum::Router, path: &str) -> (axum::http::StatusCode, String) {
+    use tower::ServiceExt;
+    let request = axum::http::Request::get(path).body(axum::body::Body::empty()).unwrap();
+    let response = app.clone().oneshot(request).await.unwrap();
+    let status = response.status();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    (status, String::from_utf8_lossy(&body).into_owned())
+}

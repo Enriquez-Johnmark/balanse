@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use sqlx::PgPool;
-use time::{Duration, OffsetDateTime};
+use time::Duration;
 
 use super::businesses::BusinessId;
 use super::debtors::DebtorId;

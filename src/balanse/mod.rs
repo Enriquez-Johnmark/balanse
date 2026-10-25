@@ -2,6 +2,7 @@
 
 pub mod account_emails;
 pub mod businesses;
+pub mod debtor_links;
 pub mod debtors;
 pub mod debts;
 pub mod drafts;

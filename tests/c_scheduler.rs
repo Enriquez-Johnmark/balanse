@@ -18,7 +18,7 @@ use time::Duration;
 use time::macros::datetime;
 
 fn scheduler(pool: &PgPool, clock: &Arc<FixedClock>) -> Scheduler {
-    common::scheduler(pool, &clock)
+    common::scheduler(pool, clock)
 }
 
 async fn debtor(pool: &PgPool, clock: &Arc<FixedClock>, business: BusinessId) -> DebtorId {

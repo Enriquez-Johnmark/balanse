@@ -41,7 +41,7 @@ async fn with_a_draft(pool: &PgPool, clock: &Arc<FixedClock>) -> (axum::Router, 
         Some(&cookie),
     )
     .await;
-    common::scheduler(&pool, &clock).run().await.unwrap();
+    common::scheduler(pool, clock).run().await.unwrap();
     let drafts = call(&app, "GET", "/api/drafts", None, Some(&cookie)).await.body;
     (app, cookie, drafts)
 }

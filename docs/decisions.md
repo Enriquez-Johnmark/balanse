@@ -4,6 +4,10 @@ Every owner-approved decision, newest first, with the date it was made. Decision
 
 Decisions made before this repository existed (the product family, the name, licences, the engine) are in [Kompleto's decision log](https://github.com/Enriquez-Johnmark/kompleto/blob/main/docs/decisions.md), 2026-10-23.
 
+## 2026-10-25
+
+- **The free-tool checks move to before pilots.** First Circle Invoice is a waitlist and PayMongo Invoices a beta request, so waiting on them would hold up the build for weeks at no saving (M2 costs only build time, ₱0). M2 starts now; the checks of First Circle Invoice, Lista and PayMongo Invoices are due before pilots, as the spec already said. The risk accepted: if a check later shows a free tool already does this, M2's work may be wasted (owner: "yes").
+
 ## 2026-10-24
 
 - **Readiness gate passed (Phase 5).** Brief, spec with 38 acceptance criteria, architecture, ADRs, glossary, code rules, skills and frontend guide are in place, so the build opens: Nudgewright v0.3.0 first, then M1–M6. The owner's free-tool checks are due before M2, the domain before M6; the Anthropic API key is optional (owner: "yes").

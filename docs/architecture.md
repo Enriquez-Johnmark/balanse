@@ -44,7 +44,7 @@ One milestone at a time, test first, each criterion's test named by its ID (spec
 | M5 | Bounces, the evidence log and its export, leaving, retention | F4–F5, H3, H5 |
 | M6 | Deployment, once `balanseapp.com` is bought | — |
 
-The owner's checks of First Circle Invoice, Lista and PayMongo Invoices (brief, kill-checks) come before M2.
+The owner's checks of First Circle Invoice, Lista and PayMongo Invoices (brief, kill-checks) come before pilots (moved from before M2 on 2026-10-25, `docs/decisions.md`).
 
 ## Open
 

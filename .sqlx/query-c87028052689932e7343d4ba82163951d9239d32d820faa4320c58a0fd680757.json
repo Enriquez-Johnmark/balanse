@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update debts set status = 'disputed', updated_at = $3\n             where tenant_id = $1 and debtor_id = $2 and status in ('open', 'payment_claimed')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c87028052689932e7343d4ba82163951d9239d32d820faa4320c58a0fd680757"
+}

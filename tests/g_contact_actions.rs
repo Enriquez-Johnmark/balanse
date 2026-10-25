@@ -112,3 +112,38 @@ async fn g2_i_have_paid_claims_payment_pauses_reminders_and_tells_the_owner(pool
         .unwrap();
     assert_eq!(claims, 1);
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g3_a_dispute_stops_reminders_and_later_messages_say_so(pool: PgPool) {
+    let world = world(&pool).await;
+    let outcomes = balanse::balanse::outcomes::Outcomes::new(pool.clone(), world.clock.clone());
+
+    world
+        .actions(&pool)
+        .dispute(world.business, world.debtor)
+        .await
+        .unwrap();
+    let stopped = state(&pool, world.debtor).await;
+    // Sorted out, the Owner resumes reminders a day later.
+    world.clock.advance(time::Duration::days(1));
+    outcomes
+        .resume(world.business, world.debtor, "ana@reyes.test")
+        .await
+        .unwrap();
+    world.clock.advance(time::Duration::days(1));
+    common::scheduler(&pool, &world.clock).run().await.unwrap();
+
+    assert_eq!(stopped, "disputed");
+    let drafted: String = sqlx::query_scalar(
+        "select body_text from outbox_messages where to_address = 'lito@santos.test' and status = 'draft'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!(drafted.contains("INV-1") && drafted.contains("(disputed)"), "{drafted}");
+    let notice: String = sqlx::query_scalar("select subject from outbox_messages where to_address = 'ana@reyes.test'")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(notice, "Lito (Santos Trading) disputes what they owe");
+}

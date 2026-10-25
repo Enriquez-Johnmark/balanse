@@ -116,4 +116,64 @@ impl ContactActions {
         approve_notice(&self.outbox, &checks, business, notice).await?;
         Ok(id)
     }
+
+    /// The Contact disputes what they owe (G3): reminders stop, and the
+    /// Debts are marked disputed, so any later message says so.
+    pub async fn dispute(&self, business: BusinessId, debtor: DebtorId) -> Result<(), ActionError> {
+        let about = about(&self.pool, business, debtor)
+            .await?
+            .ok_or(ActionError::NotFound)?;
+        let now = self.clock.now();
+        let mut tx = self.pool.begin().await?;
+        sqlx::query!(
+            "update debts set status = 'disputed', updated_at = $3
+             where tenant_id = $1 and debtor_id = $2 and status in ('open', 'payment_claimed')",
+            business.as_uuid(),
+            debtor.as_uuid(),
+            now,
+        )
+        .execute(&mut *tx)
+        .await?;
+        sqlx::query!(
+            "update debtors set state = 'disputed', promised_until = null, updated_at = $3
+             where tenant_id = $1 and id = $2 and state not in ('opted_out', 'bounced')",
+            business.as_uuid(),
+            debtor.as_uuid(),
+            now,
+        )
+        .execute(&mut *tx)
+        .await?;
+        let event = AuditEvent {
+            tenant: business,
+            at: now,
+            actor: "contact",
+            action: "debtor.disputed",
+            subject_type: "debtor",
+            subject_id: debtor.as_uuid(),
+            details: json!({ "by": "contact" }),
+        };
+        audit::record(&mut *tx, &event).await?;
+        let notice = draft_notice(
+            &self.outbox,
+            &mut tx,
+            (business, debtor),
+            &about,
+            self.links.base_url(),
+            &Notice {
+                subject: &format!("{} ({}) disputes what they owe", about.contact_name, about.debtor_name),
+                what: &format!(
+                    "{} of {} disputes what they owe.",
+                    about.contact_name, about.debtor_name
+                ),
+                then: "Reminders have stopped. Once it's sorted out, you can resume them; until then, any \
+                       reminder you approve says the amount is disputed.",
+            },
+        )
+        .await?;
+        tx.commit().await?;
+        cancel_waiting(&self.outbox, &self.pool, business, debtor, "contact").await?;
+        let checks = BalanseChecks::for_approval(self.pool.clone(), self.links.clone());
+        approve_notice(&self.outbox, &checks, business, notice).await?;
+        Ok(())
+    }
 }

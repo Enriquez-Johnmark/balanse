@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select d.id, d.tenant_id, a.name as business_name, d.contact_name, d.contact_email, d.language,\n                      d.state, d.promised_until, d.cycle_start, b.heads_up,\n                      min(t.due_date) as \"due!\",\n                      (array_agg(t.created_at order by t.due_date, t.created_at))[1] as \"due_added!\"\n               from debtors d\n               join businesses b on b.tenant_id = d.tenant_id\n               join accounts a on a.tenant_id = d.tenant_id and a.closed_at is null\n               join debts t on t.tenant_id = d.tenant_id and t.debtor_id = d.id and t.status = 'open'\n               where d.state in ('active', 'promised')\n               group by d.id, a.name, b.heads_up\n               order by d.tenant_id, d.id",
+  "query": "select d.id, d.tenant_id, a.name as business_name, d.contact_name, d.contact_email, d.language,\n                      d.state, d.promised_until, d.cycle_start, b.heads_up,\n                      min(t.due_date) as \"due!\",\n                      (array_agg(t.created_at order by t.due_date, t.created_at))[1] as \"due_added!\"\n               from debtors d\n               join businesses b on b.tenant_id = d.tenant_id\n               join accounts a on a.tenant_id = d.tenant_id and a.closed_at is null\n               join debts t on t.tenant_id = d.tenant_id and t.debtor_id = d.id and t.status in ('open', 'disputed')\n               where d.state in ('active', 'promised')\n               group by d.id, a.name, b.heads_up\n               order by d.tenant_id, d.id",
   "describe": {
     "columns": [
       {
@@ -144,5 +144,5 @@
       null
     ]
   },
-  "hash": "2b4a70bf580250c25b36e5f8b400fc4b0d926cdb1019fb08fa1f72234bbd513c"
+  "hash": "195be7a0a80b7de72b9a52e1f9a456b4ce3a8c14d70f6b8d71b6b34f00169e2d"
 }

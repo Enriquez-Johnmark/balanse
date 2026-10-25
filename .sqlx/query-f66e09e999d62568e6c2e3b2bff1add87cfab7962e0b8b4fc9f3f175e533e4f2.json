@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select invoice_number, invoice_date, amount, due_date from debts\n         where tenant_id = $1 and debtor_id = $2 and status = 'open'\n         order by due_date, invoice_number, id",
+  "query": "select invoice_number, invoice_date, amount, due_date, status from debts\n         where tenant_id = $1 and debtor_id = $2 and status in ('open', 'disputed')\n         order by due_date, invoice_number, id",
   "describe": {
     "columns": [
       {
@@ -46,6 +46,17 @@
             "name": "due_date"
           }
         }
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "status"
+          }
+        }
       }
     ],
     "parameters": {
@@ -58,8 +69,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "f5bb7a6b7711f112da7fcc7e236b8e64231f860d6f404487d743644c5f74a9ba"
+  "hash": "f66e09e999d62568e6c2e3b2bff1add87cfab7962e0b8b4fc9f3f175e533e4f2"
 }

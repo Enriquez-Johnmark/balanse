@@ -19,6 +19,8 @@ pub struct DebtLine {
     pub amount: String,
     /// When it was due.
     pub due_date: Date,
+    /// Whether the Debtor disputes it (G3).
+    pub disputed: bool,
 }
 
 /// A reminder's subject and body.
@@ -82,11 +84,12 @@ pub fn debt_block(debts: &[DebtLine]) -> String {
         .iter()
         .map(|debt| {
             format!(
-                "- Invoice {} ({}): {}, due {}",
+                "- Invoice {} ({}): {}, due {}{}",
                 debt.invoice_number,
                 debt.invoice_date.format(format).unwrap_or_default(),
                 debt.amount,
                 debt.due_date.format(format).unwrap_or_default(),
+                if debt.disputed { " (disputed)" } else { "" },
             )
         })
         .collect::<Vec<_>>()

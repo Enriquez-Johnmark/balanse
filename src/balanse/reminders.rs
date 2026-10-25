@@ -169,7 +169,7 @@ impl Scheduler {
                from debtors d
                join businesses b on b.tenant_id = d.tenant_id
                join accounts a on a.tenant_id = d.tenant_id and a.closed_at is null
-               join debts t on t.tenant_id = d.tenant_id and t.debtor_id = d.id and t.status = 'open'
+               join debts t on t.tenant_id = d.tenant_id and t.debtor_id = d.id and t.status in ('open', 'disputed')
                where d.state in ('active', 'promised')
                group by d.id, a.name, b.heads_up
                order by d.tenant_id, d.id"#,
@@ -340,11 +340,12 @@ impl Scheduler {
     }
 }
 
-/// `debtor`'s open Debts, earliest due first, as reminders list them.
+/// `debtor`'s open Debts, disputed ones included, earliest due first, as
+/// reminders list them.
 pub async fn open_debts(pool: &PgPool, business: BusinessId, debtor: DebtorId) -> Result<Vec<DebtLine>, sqlx::Error> {
     let rows = sqlx::query!(
-        "select invoice_number, invoice_date, amount, due_date from debts
-         where tenant_id = $1 and debtor_id = $2 and status = 'open'
+        "select invoice_number, invoice_date, amount, due_date, status from debts
+         where tenant_id = $1 and debtor_id = $2 and status in ('open', 'disputed')
          order by due_date, invoice_number, id",
         business.as_uuid(),
         debtor.as_uuid(),
@@ -358,6 +359,7 @@ pub async fn open_debts(pool: &PgPool, business: BusinessId, debtor: DebtorId) -
             invoice_date: row.invoice_date,
             amount: row.amount,
             due_date: row.due_date,
+            disputed: row.status == "disputed",
         })
         .collect())
 }

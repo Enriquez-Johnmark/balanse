@@ -190,3 +190,21 @@ async fn g1_a_forged_link_cant_claim_payment(pool: PgPool) {
         .unwrap();
     assert_eq!(state, "active");
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g3_pressing_i_dispute_this_records_the_dispute(pool: PgPool) {
+    let clock = clock();
+    let path = santos_page(&pool, &clock).await;
+    let app = common::app(&pool, &clock);
+
+    let (status, _) = common::post_page(&app, &format!("{path}/dispute")).await;
+    let (_, page) = common::get_page(&app, &path).await;
+
+    assert_eq!(status.as_u16(), 303);
+    assert!(page.contains("Your dispute is noted"), "{page}");
+    let state: String = sqlx::query_scalar("select state from debtors")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(state, "disputed");
+}

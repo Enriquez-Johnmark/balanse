@@ -28,6 +28,7 @@
 {% if can_act %}
 <section class="card actions">
 <form method="post" action="{{ path }}/paid"><button type="submit">{{ w.paid }}</button></form>
+<form method="post" action="{{ path }}/dispute"><button type="submit">{{ w.dispute }}</button></form>
 </section>
 {% endif %}
 {% endblock %}

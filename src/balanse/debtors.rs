@@ -126,8 +126,8 @@ impl Debtors {
     pub async fn list(&self, business: BusinessId) -> Result<Vec<DebtorSummary>, DebtorError> {
         let rows = sqlx::query!(
             r#"select d.id, d.business_name, d.contact_name, d.state, d.promised_until,
-                      count(t.id) filter (where t.status = 'open') as "open_debts!",
-                      min(t.due_date) filter (where t.status = 'open') as oldest_due
+                      count(t.id) filter (where t.status in ('open', 'disputed')) as "open_debts!",
+                      min(t.due_date) filter (where t.status in ('open', 'disputed')) as oldest_due
                from debtors d
                left join debts t on t.tenant_id = d.tenant_id and t.debtor_id = d.id
                where d.tenant_id = $1

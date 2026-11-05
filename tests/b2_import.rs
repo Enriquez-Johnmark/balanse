@@ -89,3 +89,22 @@ async fn b2_a_file_without_a_required_column_is_refused(pool: PgPool) {
         "{result:?}"
     );
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn b2_rows_of_empty_cells_dont_count_toward_the_row_limit(pool: PgPool) {
+    let clock = clock();
+    let reyes = business(&pool, &clock).await;
+    let row = |n: usize| format!("Santos Trading,Lito,lito@santos.test,INV-{n},2026-09-30,500,2026-10-30,\n");
+    let mut file = "Debtor,Contact name,Contact email,Invoice number,Invoice date,Amount,Due date,Note\n".to_owned();
+    (1..=300).for_each(|n| file.push_str(&row(n)));
+    // As Excel saves formatted but empty rows.
+    file.push_str(&",,,,,,,\n".repeat(100));
+    (301..=450).for_each(|n| file.push_str(&row(n)));
+
+    let report = Importer::new(pool.clone(), clock.clone())
+        .import(reyes, &read_csv(file.as_bytes()).unwrap())
+        .await
+        .unwrap();
+
+    assert_eq!((report.added_debts, report.invalid.len()), (450, 0));
+}

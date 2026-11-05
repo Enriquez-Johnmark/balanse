@@ -112,13 +112,15 @@ impl Importer {
         let Some(((_, header), rows)) = rows.split_first() else {
             return Err(ImportError::Empty);
         };
-        if rows.len() > MAX_ROWS {
+        // Rows of empty cells, as Excel saves formatted ones, don't count.
+        let filled = rows.iter().filter(|(_, cells)| !is_blank(cells)).count();
+        if filled > MAX_ROWS {
             return Err(ImportError::TooManyRows);
         }
         let columns = Columns::find(header)?;
         let mut report = ImportReport::default();
         for (number, cells) in rows {
-            if cells.iter().all(|cell| cell.trim().is_empty()) {
+            if is_blank(cells) {
                 continue;
             }
             let (debtor, debt) = columns.read(cells);
@@ -202,6 +204,11 @@ impl Importer {
         .await?;
         Ok(id.map(Into::into))
     }
+}
+
+/// Whether every cell of a row is empty.
+fn is_blank(cells: &[String]) -> bool {
+    cells.iter().all(|cell| cell.trim().is_empty())
 }
 
 /// Where each field is in a file, by column index.

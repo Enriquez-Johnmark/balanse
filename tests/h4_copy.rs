@@ -63,4 +63,6 @@ fn h4_whatsapp_opens_with_the_text_for_the_contacts_mobile() {
         Some("https://wa.me/639171234567?text=x")
     );
     assert_eq!(whatsapp_link("", "x"), None);
+    // A landline keeps its trunk 0, which WhatsApp can't dial.
+    assert_eq!(whatsapp_link("02 8123 4567", "x"), None);
 }

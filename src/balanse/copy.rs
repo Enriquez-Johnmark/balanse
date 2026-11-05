@@ -53,6 +53,8 @@ pub fn whatsapp_link(mobile: &str, text: &str) -> Option<String> {
     let international = match digits.as_bytes() {
         [b'0', b'9', ..] if digits.len() == 11 => format!("63{}", &digits[1..]),
         [b'9', ..] if digits.len() == 10 => format!("63{digits}"),
+        // A trunk 0 means a local number WhatsApp can't dial.
+        [b'0', ..] => return None,
         _ if (10..=15).contains(&digits.len()) => digits,
         _ => return None,
     };

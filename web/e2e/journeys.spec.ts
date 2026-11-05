@@ -172,7 +172,7 @@ test("h4 a draft is copied for SMS without its link, and a message sent by hand 
   await card.getByRole("button", { name: "Copy and open" }).click()
   await page.getByRole("menuitem", { name: "Copy for SMS" }).click()
   await expect(page.getByText("Copied for SMS")).toBeVisible()
-  const sms = await page.evaluate(() => navigator.clipboard.readText())
+  const sms = await page.evaluate<string>("navigator.clipboard.readText()")
   expect(sms).toContain("INV-7")
   expect(sms).not.toMatch(/https?:|\/d\//)
   // Copying approved nothing.

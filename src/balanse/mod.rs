@@ -8,6 +8,7 @@ pub mod debtor_links;
 pub mod debtors;
 pub mod debts;
 pub mod drafts;
+pub mod guard;
 pub mod notices;
 pub mod outcomes;
 pub mod presend;

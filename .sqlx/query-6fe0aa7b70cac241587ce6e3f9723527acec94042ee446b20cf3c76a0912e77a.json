@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select r.debtor_id, d.state, d.contact_email, a.name as business_name\n             from reminders r\n             join debtors d on d.tenant_id = r.tenant_id and d.id = r.debtor_id\n             join accounts a on a.tenant_id = r.tenant_id\n             where r.tenant_id = $1 and r.message_id = $2",
+  "query": "select r.debtor_id, d.state, d.contact_email, d.contact_name, d.business_name as debtor_name,\n                    a.name as business_name\n             from reminders r\n             join debtors d on d.tenant_id = r.tenant_id and d.id = r.debtor_id\n             join accounts a on a.tenant_id = r.tenant_id\n             where r.tenant_id = $1 and r.message_id = $2",
   "describe": {
     "columns": [
       {
@@ -38,6 +38,28 @@
       },
       {
         "ordinal": 3,
+        "name": "contact_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "debtor_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "business_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
         "name": "business_name",
         "type_info": "Text",
         "origin": {
@@ -58,8 +80,10 @@
       false,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "9f538e9613730c99d8ead03495e88cc26c3549e65bd8bb169515d3aee69848ad"
+  "hash": "6fe0aa7b70cac241587ce6e3f9723527acec94042ee446b20cf3c76a0912e77a"
 }

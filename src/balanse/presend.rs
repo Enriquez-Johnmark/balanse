@@ -7,7 +7,9 @@
 //! - be for a Debtor that is still active (C7);
 //! - carry one link, the Debtor's own page, and no other;
 //! - list the Debtor's open Debts exactly as Balanse writes them;
-//! - come from the Business's name and keep Balanse's footer.
+//! - come from the Business's name and keep Balanse's footer;
+//! - pass the content guard: no threats, insults, shaming or impersonation
+//!   (D5, R8).
 //!
 //! At sending time only, it must also fall on a weekday between 08:00 and
 //! 20:00 Manila time (C5) and within the cap (C4). Those make it wait, not
@@ -25,6 +27,7 @@ use time::macros::time;
 use time::{Date, Duration, OffsetDateTime, Weekday};
 
 use super::debtor_links::DebtorLinks;
+use super::guard;
 use super::reminders::{MANILA, open_debts, sent_dates};
 use super::schedule::cap_allows;
 use super::wording::{debt_block, footer};
@@ -68,7 +71,8 @@ impl BalanseChecks {
         let unavailable = |err: sqlx::Error| CheckFailed::Unavailable(err.to_string());
         let refuse = |reason: String| Err(CheckFailed::Refused(reason));
         let reminder = sqlx::query!(
-            "select r.debtor_id, d.state, d.contact_email, a.name as business_name
+            "select r.debtor_id, d.state, d.contact_email, d.contact_name, d.business_name as debtor_name,
+                    a.name as business_name
              from reminders r
              join debtors d on d.tenant_id = r.tenant_id and d.id = r.debtor_id
              join accounts a on a.tenant_id = r.tenant_id
@@ -111,8 +115,22 @@ impl BalanseChecks {
         if !email.body_text.contains(&debt_block(&debts)) {
             return refuse("the list of invoices or amounts differs from the Debts on record".to_owned());
         }
-        if !email.body_text.contains(&footer(&reminder.business_name)) {
+        let footer = footer(&reminder.business_name);
+        if !email.body_text.contains(&footer) {
             return refuse("Balanse's footer is missing".to_owned());
+        }
+        // The Owner's words, without the facts Balanse inserted (D5, R8).
+        let block = debt_block(&debts);
+        let facts = [
+            block.as_str(),
+            footer.as_str(),
+            reminder.business_name.as_str(),
+            reminder.debtor_name.as_str(),
+            reminder.contact_name.as_str(),
+        ];
+        let text = format!("{}\n{}", email.subject, email.body_text);
+        if let Some(reason) = guard::check(&text, &facts, guard::Writer::Owner) {
+            return refuse(reason.to_owned());
         }
         let Some(clock) = &self.sending else {
             return Ok(());

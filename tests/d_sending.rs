@@ -347,3 +347,37 @@ async fn d4_a_link_to_anything_but_the_debtors_page_is_refused(pool: PgPool) {
 
     assert!(matches!(err, OutboxError::CheckFailed(_)), "got {err:?}");
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn d5_a_reminder_edited_into_a_threat_is_refused_with_the_reason(pool: PgPool) {
+    let (world, id) = world(&pool).await;
+    world
+        .edit(id, |email| {
+            email.body_text = email
+                .body_text
+                .replace("Hi Lito,", "Hi Lito, makukulong ka kung hindi ka magbayad.")
+        })
+        .await;
+
+    let err = world.approve(&pool, id).await.unwrap_err();
+
+    assert!(
+        matches!(&err, OutboxError::CheckFailed(why) if why.contains("arrest")),
+        "got {err:?}"
+    );
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn d5_the_owner_may_add_lawful_legal_action_in_their_own_words(pool: PgPool) {
+    let (world, id) = world(&pool).await;
+    world
+        .edit(id, |email| {
+            email.body_text = email.body_text.replace(
+                "Hi Lito,",
+                "Hi Lito, if this stays unpaid we may file a small claims case.",
+            )
+        })
+        .await;
+
+    world.approve(&pool, id).await.unwrap();
+}

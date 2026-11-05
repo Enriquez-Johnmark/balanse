@@ -184,3 +184,15 @@ test("h4 a draft is copied for SMS without its link, and a message sent by hand 
   await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
   await expect(page.getByText("Noted")).toBeVisible()
 })
+
+test("h2 the Owner's pages show no totals, aging or accounting documents", async ({ page }) => {
+  await addDebtor(page, `Lim Events ${run}`, "lito@limevents.test")
+  const never = /\btotal|\bag(e)?ing\b|statement of account|billing statement|ledger/i
+
+  for (const path of [page.url(), "/", "/drafts", "/settings", "/debtors/import"]) {
+    await page.goto(path)
+    await expect(page.getByRole("heading").first()).toBeVisible()
+    await page.waitForLoadState("networkidle")
+    expect(await page.locator("body").innerText()).not.toMatch(never)
+  }
+})

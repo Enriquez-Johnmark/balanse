@@ -28,6 +28,7 @@ use sqlx::PgPool;
 use tokio::sync::Notify;
 use tower_http::trace::TraceLayer;
 
+use crate::balanse::claims::Claims;
 use crate::balanse::contact_actions::ContactActions;
 use crate::balanse::debtor_links::DebtorLinks;
 use crate::balanse::debtors::Debtors;
@@ -58,6 +59,7 @@ pub struct AppState {
     actions: ContactActions,
     /// Proof-of-payment files, when file storage is set up.
     proofs: Option<Proofs>,
+    claims: Claims,
     /// Where links in emails point, e.g. `https://app.balanseapp.com`.
     base_url: String,
     /// `scheme://host[:port]` of the base URL; posts must come from it.
@@ -104,6 +106,7 @@ impl AppState {
             wake_sender: Arc::new(Notify::new()),
             inbound: None,
             proofs: None,
+            claims: Claims::new(pool.clone(), clock.clone(), None),
             web_dir: None,
             pool,
             clock,
@@ -123,6 +126,7 @@ impl AppState {
     /// Debtor's page still takes "I've paid" but refuses files.
     #[must_use]
     pub fn with_proofs(mut self, proofs: Proofs) -> Self {
+        self.claims = Claims::new(self.pool.clone(), self.clock.clone(), Some(proofs.clone()));
         self.proofs = Some(proofs);
         self
     }

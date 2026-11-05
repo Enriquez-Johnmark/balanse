@@ -133,6 +133,32 @@ pub struct DebtorPage {
     pub reminders: Vec<ReminderRow>,
     /// Replies from its Contact, newest first.
     pub replies: Vec<ReplyRow>,
+    /// The claim of payment waiting for the Owner's answer, if any.
+    pub claim: Option<ClaimRow>,
+}
+
+/// A claim of payment waiting for the Owner's answer (G2).
+#[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
+pub struct ClaimRow {
+    /// Its ID.
+    pub id: Uuid,
+    /// When the Contact said they paid, RFC 3339.
+    pub claimed_at: String,
+    /// The proof files attached, oldest first.
+    pub files: Vec<ProofRow>,
+}
+
+/// One proof file on a claim, downloaded only as an attachment (G5).
+#[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
+pub struct ProofRow {
+    /// Its ID.
+    pub id: Uuid,
+    /// `image/jpeg`, `image/png`, `image/heic`, `image/webp` or `application/pdf`.
+    pub media_type: String,
+    /// Its size in bytes.
+    pub size_bytes: i32,
 }
 
 /// One Debt on a Debtor's page.
@@ -216,6 +242,39 @@ async fn page(
     .fetch_all(&state.pool)
     .await
     .map_err(ApiError::internal)?;
+    let claim = match sqlx::query!(
+        "select id, claimed_at from claims where tenant_id = $1 and debtor_id = $2 and settled_at is null
+         order by claimed_at desc limit 1",
+        business.as_uuid(),
+        id,
+    )
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(ApiError::internal)?
+    {
+        None => None,
+        Some(row) => {
+            let files = match &state.proofs {
+                Some(proofs) => proofs
+                    .for_claim(business, row.id.into())
+                    .await
+                    .map_err(ApiError::internal)?
+                    .into_iter()
+                    .map(|proof| ProofRow {
+                        id: proof.id.as_uuid(),
+                        media_type: proof.kind.media_type().to_owned(),
+                        size_bytes: proof.size_bytes,
+                    })
+                    .collect(),
+                None => Vec::new(),
+            };
+            Some(ClaimRow {
+                id: row.id,
+                claimed_at: rfc3339(row.claimed_at),
+                files,
+            })
+        }
+    };
     Ok(Json(DebtorPage {
         id,
         business_name: debtor.business_name,
@@ -257,6 +316,7 @@ async fn page(
                 received_at: rfc3339(row.received_at),
             })
             .collect(),
+        claim,
     }))
 }
 

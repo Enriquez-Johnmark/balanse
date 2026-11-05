@@ -7,6 +7,7 @@
 //!   cross-site form can't send.
 //! - Errors are JSON ([`ErrorBody`]) without internal details.
 
+mod claims;
 mod debtors;
 mod drafts;
 mod login;
@@ -28,6 +29,7 @@ use crate::engine::accounts::Session;
 
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
+        .merge(claims::routes())
         .merge(debtors::routes())
         .merge(drafts::routes())
         .merge(login::routes())

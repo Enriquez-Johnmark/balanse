@@ -134,7 +134,8 @@ pub async fn call(
 pub async fn login_token(pool: &PgPool, email: &str) -> Option<String> {
     for _ in 0..40 {
         let body: Option<String> = sqlx::query_scalar(
-            "select body_text from outbox_messages where lower(to_address) = lower($1) order by created_at desc limit 1",
+            "select body_text from outbox_messages where lower(to_address) = lower($1) and body_text like '%/login/%'
+             order by created_at desc limit 1",
         )
         .bind(email)
         .fetch_optional(pool)

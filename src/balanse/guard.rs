@@ -81,7 +81,7 @@ const GROUPS: &[Group] = &[
         owner_may_write: false,
         terms: &[
             "scammer",
-            "scam",
+            "you scam",
             "manloloko",
             "magnanakaw",
             "estafa",
@@ -112,20 +112,23 @@ const GROUPS: &[Group] = &[
             "ipopost",
             "ipost",
             "post you",
-            "facebook",
+            "post this on facebook",
+            "post it on facebook",
             "sasabihan namin",
             "sabihin namin",
             "pamilya mo",
-            "your family",
-            "employer",
+            "tell your family",
+            "contact your family",
+            "your employer",
+            "your boss",
             "amo mo",
             "boss mo",
             "kapitbahay",
-            "neighbors",
-            "neighbours",
-            "relatives",
-            "kamag-anak",
-            "kamaganak",
+            "your neighbors",
+            "your neighbours",
+            "your relatives",
+            "kamag-anak mo",
+            "kamaganak mo",
             "group chat",
             "everyone will know",
         ],
@@ -139,18 +142,34 @@ const GROUPS: &[Group] = &[
             "law office",
             "law firm",
             "legal department",
-            "government",
-            "bsp",
+            "government office",
+            "on behalf of the government",
             "bangko sentral",
-            "sec",
-            "dti",
-            "bir",
+            "securities and exchange commission",
+            "bureau of internal revenue",
         ],
     },
     Group {
         reason: "it asks for a one-time code or password, as scams do",
         owner_may_write: false,
-        terms: &["otp", "one-time pin", "pin", "password", "passcode"],
+        terms: &[
+            "send your otp",
+            "send the otp",
+            "send us your otp",
+            "give your otp",
+            "share your otp",
+            "otp code",
+            "ipadala ang otp",
+            "ipadala po ang otp",
+            "ibigay ang otp",
+            "ibigay po ang otp",
+            "send your pin",
+            "give your pin",
+            "your password",
+            "ipadala ang password",
+            "ibigay ang password",
+            "passcode",
+        ],
     },
 ];
 
@@ -234,6 +253,19 @@ mod tests {
                 })),
                 "{text}: {reason:?}"
             );
+        }
+    }
+
+    #[test]
+    fn d5_friendly_and_helpful_words_are_allowed() {
+        for text in [
+            "Hope your family is well!",
+            "You can also message us on Facebook if that's easier.",
+            "We never ask for your OTP. Beware of scams pretending to be us.",
+            "Our employer ID is on the invoice.",
+            "Thank you for the 2nd sec of your time.",
+        ] {
+            assert_eq!(check(text, &[], Writer::Owner), None, "{text}");
         }
     }
 

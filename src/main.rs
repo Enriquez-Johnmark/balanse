@@ -7,6 +7,7 @@ use std::time::Duration;
 use anyhow::Context;
 use balanse::balanse::account_emails::welcome_email;
 use balanse::balanse::debtor_links::DebtorLinks;
+use balanse::balanse::drafting::ModelWording;
 use balanse::balanse::presend::BalanseChecks;
 use balanse::balanse::proofs::Proofs;
 use balanse::balanse::reminders::{MANILA, ReplyAddresses, Scheduler};
@@ -78,7 +79,8 @@ async fn run() -> anyhow::Result<()> {
         }
         "schedule" => {
             let links = debtor_links(&config, &pool, &clock)?;
-            let report = Scheduler::new(pool, clock, reply_addresses(&config)?, links)
+            let scheduler = Scheduler::new(pool.clone(), clock.clone(), reply_addresses(&config)?, links);
+            let report = with_wording(scheduler, &config, &pool, &clock)?
                 .run()
                 .await
                 .context("drafting")?;
@@ -125,6 +127,23 @@ fn request_id() -> anyhow::Result<RequestId> {
     Ok(RequestId::from(id))
 }
 
+/// `scheduler`, with the model writing reminders' wording when an API key
+/// is set; without one, every reminder uses the template.
+fn with_wording(
+    scheduler: Scheduler,
+    config: &Config,
+    pool: &sqlx::PgPool,
+    clock: &Arc<dyn Clock>,
+) -> anyhow::Result<Scheduler> {
+    Ok(match config.language_model()? {
+        Some(model) => scheduler.with_wording(Arc::new(ModelWording::new(pool.clone(), clock.clone(), model))),
+        None => {
+            tracing::info!("ANTHROPIC_API_KEY isn't set; reminders use the templates");
+            scheduler
+        }
+    })
+}
+
 /// The signed links to Debtor pages that reminders carry.
 fn debtor_links(config: &Config, pool: &sqlx::PgPool, clock: &Arc<dyn Clock>) -> anyhow::Result<DebtorLinks> {
     Ok(DebtorLinks::new(
@@ -161,7 +180,8 @@ async fn dev_schedule(config: &Config, pool: sqlx::PgPool) -> anyhow::Result<()>
     balanse::MIGRATOR.run(&pool).await.context("running migrations")?;
     let clock: Arc<dyn Clock> = Arc::new(FixedClock::new(date.with_hms(7, 30, 0)?.assume_offset(MANILA)));
     let links = debtor_links(config, &pool, &clock)?;
-    let report = Scheduler::new(pool, clock, reply_addresses(config)?, links)
+    let scheduler = Scheduler::new(pool.clone(), clock.clone(), reply_addresses(config)?, links);
+    let report = with_wording(scheduler, config, &pool, &clock)?
         .run()
         .await
         .context("drafting")?;
@@ -222,7 +242,12 @@ async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> an
             let _ = tokio::time::timeout(DRAIN_EVERY, wake.notified()).await;
         }
     });
-    let scheduler = Scheduler::new(pool, clock, addresses, links);
+    let scheduler = with_wording(
+        Scheduler::new(pool.clone(), clock.clone(), addresses, links),
+        config,
+        &pool,
+        &clock,
+    )?;
     tokio::spawn(async move {
         loop {
             if let Err(err) = scheduler.run().await {

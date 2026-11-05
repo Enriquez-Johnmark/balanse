@@ -3,6 +3,7 @@
 use secrecy::SecretString;
 
 use crate::engine::files::MasterKey;
+use crate::engine::llm::AnthropicClient;
 use crate::engine::mail::{ConfiguredMailer, MailpitMailer, ResendMailer};
 use crate::engine::outbox::SendBudget;
 
@@ -58,6 +59,20 @@ pub struct Config {
     /// ClamAV's daemon (`CLAMD_ADDR`, `host:port`), which scans every proof
     /// file; required in production.
     pub clamd_addr: Option<String>,
+    /// The model that writes reminders' wording; `None` without
+    /// `ANTHROPIC_API_KEY`, and every reminder uses the template (E2).
+    pub model: Option<ModelConfig>,
+}
+
+/// Where and which model writes wording.
+#[derive(Debug, Clone)]
+pub struct ModelConfig {
+    /// Normally `https://api.anthropic.com`.
+    pub base_url: String,
+    /// The API key: never a Claude subscription (decision of 2026-10-22).
+    pub api_key: SecretString,
+    /// The model ID, e.g. `claude-haiku-5-5`.
+    pub model: String,
 }
 
 /// A setting that is missing or can't be used.
@@ -100,6 +115,11 @@ impl Config {
             web_dir: optional("WEB_DIR").map_or_else(|| "web/dist".into(), Into::into),
             upload_dir: optional("UPLOAD_DIR").map_or_else(|| "uploads".into(), Into::into),
             clamd_addr: optional("CLAMD_ADDR"),
+            model: optional("ANTHROPIC_API_KEY").map(|key| ModelConfig {
+                base_url: optional("ANTHROPIC_BASE_URL").unwrap_or_else(|| "https://api.anthropic.com".to_owned()),
+                api_key: SecretString::from(key),
+                model: optional("LLM_MODEL").unwrap_or_else(|| "claude-haiku-5-5".to_owned()),
+            }),
         };
         config.master_key()?;
         Ok(config)
@@ -128,6 +148,26 @@ impl Config {
                 ResendMailer::new(base_url, api_key.clone(), &self.mail_from_address).map_err(invalid)?,
             ),
         })
+    }
+
+    /// The client for the wording model, if one is configured. It gives up
+    /// after 15 seconds, and the reminder uses the template (E2).
+    pub fn language_model(&self) -> Result<Option<AnthropicClient>, ConfigError> {
+        self.model
+            .as_ref()
+            .map(|model| {
+                AnthropicClient::new(
+                    &model.base_url,
+                    model.api_key.clone(),
+                    &model.model,
+                    std::time::Duration::from_secs(15),
+                )
+                .map_err(|err| ConfigError {
+                    name: "ANTHROPIC_BASE_URL",
+                    reason: err.to_string(),
+                })
+            })
+            .transpose()
     }
 
     /// The daily send budget: Balanse's share of Resend Free, or none for

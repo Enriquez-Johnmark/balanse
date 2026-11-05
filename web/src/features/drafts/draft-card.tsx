@@ -19,6 +19,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
+import { CopyMenu } from "@/features/copy/copy-menu"
 import { EditDraftDialog } from "@/features/drafts/edit-draft-dialog"
 import { MessageText } from "@/features/drafts/message-text"
 import { useApprove, useDiscard } from "@/features/drafts/queries"
@@ -85,6 +86,7 @@ export function DraftCard({ draft, isSelected, onSelectedChange }: DraftCardProp
           <PencilIcon data-icon="inline-start" />
           Edit
         </EditDraftDialog>
+        <CopyMenu messageId={draft.id} />
         <AlertDialog>
           <AlertDialogTrigger render={<Button variant="ghost" />}>
             <Trash2Icon data-icon="inline-start" />

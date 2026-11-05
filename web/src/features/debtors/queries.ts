@@ -9,6 +9,7 @@ import type { NewAmount } from "@/api/generated/NewAmount"
 import type { NewDebt } from "@/api/generated/NewDebt"
 import type { NewDebtor } from "@/api/generated/NewDebtor"
 import type { Outcome } from "@/api/generated/Outcome"
+import type { SentByHand } from "@/api/generated/SentByHand"
 
 export function useDebtors() {
   return useQuery({
@@ -50,6 +51,16 @@ export function useRecordOutcome(id: string) {
   return useMutation({
     mutationFn: (outcome: Outcome) =>
       api<void>("POST", `/api/debtors/${encodeURIComponent(id)}/outcome`, outcome),
+    onSuccess: refresh,
+  })
+}
+
+/** H4: "I sent it on …"; it counts toward the frequency cap. */
+export function useSentByHand(debtorId: string) {
+  const refresh = useRefreshDebtors()
+  return useMutation({
+    mutationFn: (input: SentByHand) =>
+      api<void>("POST", `/api/debtors/${encodeURIComponent(debtorId)}/sent-by-hand`, input),
     onSuccess: refresh,
   })
 }

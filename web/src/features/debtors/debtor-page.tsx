@@ -19,6 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { CopyMenu } from "@/features/copy/copy-menu"
+import { SentByHandDialog } from "@/features/copy/sent-by-hand-dialog"
 import { AddDebtDialog } from "@/features/debtors/add-debt-dialog"
 import { ChangeAmountDialog } from "@/features/debtors/change-amount-dialog"
 import { ClaimCard } from "@/features/debtors/claim-card"
@@ -55,7 +57,7 @@ function DebtorContent({ debtor }: { debtor: DebtorDetail }) {
       <OutcomeCard debtor={debtor} />
       <DebtsCard debtorId={debtor.id} debts={debtor.debts} />
       <div className="grid gap-6 lg:grid-cols-2">
-        <RemindersCard reminders={debtor.reminders} />
+        <RemindersCard debtorId={debtor.id} reminders={debtor.reminders} />
         <RepliesCard replies={debtor.replies} />
       </div>
     </>
@@ -119,11 +121,17 @@ function DebtsCard({ debtorId, debts }: { debtorId: string; debts: DebtRow[] }) 
   )
 }
 
-function RemindersCard({ reminders }: { reminders: ReminderRow[] }) {
+/** Messages that can still go out, or went out, can be copied (H4). */
+const copyable = new Set(["draft", "approved", "sending", "sent"])
+
+function RemindersCard({ debtorId, reminders }: { debtorId: string; reminders: ReminderRow[] }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Reminders</CardTitle>
+        <CardAction>
+          <SentByHandDialog debtorId={debtorId} />
+        </CardAction>
       </CardHeader>
       <CardContent>
         {reminders.length === 0 ? (
@@ -131,13 +139,16 @@ function RemindersCard({ reminders }: { reminders: ReminderRow[] }) {
         ) : (
           <ul className="flex flex-col gap-3 text-sm">
             {reminders.map((reminder) => (
-              <li key={reminder.drafted_at + reminder.step} className="flex flex-col">
-                <span className="font-medium">{stepLabel(reminder.step)}</span>
-                <span className="text-muted-foreground">
-                  {reminder.sent_at
-                    ? `Sent ${formatDateTime(reminder.sent_at)}`
-                    : `${messageStatusLabel(reminder.status)} · drafted ${formatDateTime(reminder.drafted_at)}`}
-                </span>
+              <li key={reminder.id} className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-col">
+                  <span className="font-medium">{stepLabel(reminder.step)}</span>
+                  <span className="text-muted-foreground">
+                    {reminder.sent_at
+                      ? `Sent ${formatDateTime(reminder.sent_at)}`
+                      : `${messageStatusLabel(reminder.status)} · drafted ${formatDateTime(reminder.drafted_at)}`}
+                  </span>
+                </div>
+                {copyable.has(reminder.status) ? <CopyMenu messageId={reminder.id} /> : null}
               </li>
             ))}
           </ul>

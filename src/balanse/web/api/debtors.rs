@@ -195,6 +195,8 @@ pub struct DebtRow {
 #[derive(Debug, Serialize)]
 #[cfg_attr(test, derive(ts_rs::TS), ts(export))]
 pub struct ReminderRow {
+    /// Its message's ID, for copying it (H4).
+    pub id: Uuid,
     /// `heads_up`, `first`, `second` or `third`.
     pub step: String,
     /// The subject line.
@@ -231,7 +233,7 @@ async fn page(
     let debtor = state.debtors.get(business, id.into()).await.map_err(debtor_error)?;
     let debts = state.debts.for_debtor(business, debtor.id).await.map_err(debt_error)?;
     let reminders = sqlx::query!(
-        "select r.step, m.subject, m.status, r.created_at, m.sent_at
+        "select m.id, r.step, m.subject, m.status, r.created_at, m.sent_at
          from reminders r join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id
          where r.tenant_id = $1 and r.debtor_id = $2
          order by r.created_at desc limit 20",
@@ -308,6 +310,7 @@ async fn page(
         reminders: reminders
             .into_iter()
             .map(|row| ReminderRow {
+                id: row.id,
                 step: row.step,
                 subject: row.subject,
                 status: row.status,

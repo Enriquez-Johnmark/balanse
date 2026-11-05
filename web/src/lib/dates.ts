@@ -29,6 +29,12 @@ export function formatDate(isoDate: string) {
   return parts(new Date(Date.UTC(year, month - 1, day)))
 }
 
+/** Today's date in Manila, "2026-11-05": only a form's starting value;
+ *  the API checks every date it's sent. */
+export function todayInManila() {
+  return manilaDay.format(new Date())
+}
+
 /** An RFC 3339 moment → its Manila date, "Thu 5 Nov 2026". */
 export function formatDay(moment: string) {
   return formatDate(manilaDay.format(new Date(moment)))

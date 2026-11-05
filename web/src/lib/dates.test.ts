@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
-import { formatDate, formatDateTime, formatDay } from "@/lib/dates"
+import { formatDate, formatDateTime, formatDay, todayInManila } from "@/lib/dates"
 
 describe("dates", () => {
   it("shows a calendar date with its weekday, as Balanse's emails do", () => {
@@ -12,5 +12,11 @@ describe("dates", () => {
     // 23:30 UTC on 4 Nov is 07:30 on 5 Nov in Manila.
     expect(formatDay("2026-11-04T23:30:00Z")).toBe("Thu 5 Nov 2026")
     expect(formatDateTime("2026-11-04T23:30:00Z")).toBe("Thu 5 Nov 2026, 07:30")
+  })
+
+  it("gives today's date in Manila", () => {
+    vi.useFakeTimers({ now: new Date("2026-11-04T23:30:00Z") })
+    expect(todayInManila()).toBe("2026-11-05")
+    vi.useRealTimers()
   })
 })

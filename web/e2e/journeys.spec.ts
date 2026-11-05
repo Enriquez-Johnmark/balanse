@@ -158,3 +158,29 @@ test("b2 a spreadsheet adds its valid rows and lists why the others weren't", as
   await result.getByRole("link", { name: "See your Debtors" }).click()
   await expect(page.getByRole("link", { name: `Lazaro Studio ${run}` })).toBeVisible()
 })
+
+test("h4 a draft is copied for SMS without its link, and a message sent by hand is noted", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"])
+  await addDebtor(page, `Tan Prints ${run}`, "lito@tanprints.test")
+  balanse("dev-schedule", "--date", nextMonday())
+
+  await page.goto("/drafts")
+  const card = page.locator("[data-slot=card]", { hasText: `Tan Prints ${run}` })
+  await card.getByRole("button", { name: "Copy and open" }).click()
+  await page.getByRole("menuitem", { name: "Copy for SMS" }).click()
+  await expect(page.getByText("Copied for SMS")).toBeVisible()
+  const sms = await page.evaluate(() => navigator.clipboard.readText())
+  expect(sms).toContain("INV-7")
+  expect(sms).not.toMatch(/https?:|\/d\//)
+  // Copying approved nothing.
+  await expect(card.getByRole("button", { name: "Approve" })).toBeVisible()
+
+  await page.goto("/")
+  await page.getByRole("link", { name: `Tan Prints ${run}` }).click()
+  await page.getByRole("button", { name: "I sent one myself" }).click()
+  await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
+  await expect(page.getByText("Noted")).toBeVisible()
+})

@@ -1,10 +1,21 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select r.step, m.subject, m.status, r.created_at, m.sent_at\n         from reminders r join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id\n         where r.tenant_id = $1 and r.debtor_id = $2\n         order by r.created_at desc limit 20",
+  "query": "select m.id, r.step, m.subject, m.status, r.created_at, m.sent_at\n         from reminders r join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id\n         where r.tenant_id = $1 and r.debtor_id = $2\n         order by r.created_at desc limit 20",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
         "name": "step",
         "type_info": "Text",
         "origin": {
@@ -15,7 +26,7 @@
         }
       },
       {
-        "ordinal": 1,
+        "ordinal": 2,
         "name": "subject",
         "type_info": "Text",
         "origin": {
@@ -26,7 +37,7 @@
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "status",
         "type_info": "Text",
         "origin": {
@@ -37,7 +48,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "sent_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -70,8 +81,9 @@
       false,
       false,
       false,
+      false,
       true
     ]
   },
-  "hash": "920b17eec77cb218e058bdfcd3514a2482abd3f929a450b8d200834dff82daaa"
+  "hash": "c3f7cd3d350f77f14bd6bdad1e8af791d746a0f23a49fc9b3d124f2fbdb76fb2"
 }

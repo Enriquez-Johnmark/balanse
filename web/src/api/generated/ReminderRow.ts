@@ -5,6 +5,10 @@
  */
 export type ReminderRow = { 
 /**
+ * Its message's ID, for copying it (H4).
+ */
+id: string, 
+/**
  * `heads_up`, `first`, `second` or `third`.
  */
 step: string, 

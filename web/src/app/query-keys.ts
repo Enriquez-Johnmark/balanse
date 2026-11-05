@@ -14,3 +14,7 @@ export const settingsKeys = {
 export const draftKeys = {
   list: () => ["drafts"] as const,
 }
+
+export const messageKeys = {
+  copy: (id: string) => ["messages", id, "copy"] as const,
+}

@@ -5,6 +5,7 @@
 <h1>{{ w.title }} {{ business }}</h1>
 <p class="muted">{{ w.hello }} {{ contact }}.</p>
 {% if let Some(status) = status %}<p class="sent">{{ status }}</p>{% endif %}
+{% if let Some(error) = error %}<p class="error">{{ error }}</p>{% endif %}
 <section class="card">
 <h2>{{ w.invoices }}</h2>
 {% if debts.is_empty() %}
@@ -27,7 +28,11 @@
 </section>
 {% if can_act %}
 <section class="card actions">
-<form method="post" action="{{ path }}/paid"><button type="submit">{{ w.paid }}</button></form>
+<form method="post" action="{{ path }}/paid" enctype="multipart/form-data">
+  <label for="proof">{{ w.proof }}</label>
+  <input type="file" id="proof" name="file" accept="image/*,application/pdf" multiple>
+  <button type="submit">{{ w.paid }}</button>
+</form>
 <form method="post" action="{{ path }}/dispute"><button type="submit">{{ w.dispute }}</button></form>
 <form method="post" action="{{ path }}/stop"><button type="submit">{{ w.stop }}</button></form>
 </section>

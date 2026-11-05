@@ -33,6 +33,7 @@ use crate::balanse::debtor_links::DebtorLinks;
 use crate::balanse::debtors::Debtors;
 use crate::balanse::debts::Debts;
 use crate::balanse::outcomes::Outcomes;
+use crate::balanse::proofs::Proofs;
 use crate::balanse::replies::Replies;
 use crate::engine::accounts::{Logins, Signups};
 use crate::engine::clock::Clock;
@@ -55,6 +56,8 @@ pub struct AppState {
     outbox: Outbox,
     links: DebtorLinks,
     actions: ContactActions,
+    /// Proof-of-payment files, when file storage is set up.
+    proofs: Option<Proofs>,
     /// Where links in emails point, e.g. `https://app.balanseapp.com`.
     base_url: String,
     /// `scheme://host[:port]` of the base URL; posts must come from it.
@@ -100,6 +103,7 @@ impl AppState {
             secure_cookies: base_url.starts_with("https://"),
             wake_sender: Arc::new(Notify::new()),
             inbound: None,
+            proofs: None,
             web_dir: None,
             pool,
             clock,
@@ -112,6 +116,14 @@ impl AppState {
     #[must_use]
     pub fn with_inbound(mut self, secret: SecretString, replies: Replies) -> Self {
         self.inbound = Some(Arc::new(Inbound { secret, replies }));
+        self
+    }
+
+    /// Keeps proof-of-payment files with `proofs` (G5). Without it, the
+    /// Debtor's page still takes "I've paid" but refuses files.
+    #[must_use]
+    pub fn with_proofs(mut self, proofs: Proofs) -> Self {
+        self.proofs = Some(proofs);
         self
     }
 

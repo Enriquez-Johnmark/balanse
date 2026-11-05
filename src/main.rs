@@ -8,6 +8,7 @@ use anyhow::Context;
 use balanse::balanse::account_emails::welcome_email;
 use balanse::balanse::debtor_links::DebtorLinks;
 use balanse::balanse::presend::BalanseChecks;
+use balanse::balanse::proofs::Proofs;
 use balanse::balanse::reminders::{MANILA, ReplyAddresses, Scheduler};
 use balanse::balanse::replies::Replies;
 use balanse::balanse::signups::approve_signup;
@@ -15,7 +16,9 @@ use balanse::balanse::web::{AppState, router};
 use balanse::config::{Config, MailConfig};
 use balanse::engine::accounts::{LoginLink, Logins, RequestId, Signups};
 use balanse::engine::clock::{Clock, FixedClock, SystemClock};
+use balanse::engine::files::{FileCipher, Files, LocalDisk};
 use balanse::engine::outbox::Sender;
+use balanse::engine::scan::Clamd;
 use balanse::engine::signed::Signer;
 
 /// How many messages one drain may send.
@@ -172,6 +175,21 @@ async fn dev_schedule(config: &Config, pool: sqlx::PgPool) -> anyhow::Result<()>
 /// Runs the web server, the outbox sender and the scheduler until stopped.
 async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> anyhow::Result<()> {
     balanse::MIGRATOR.run(&pool).await.context("running migrations")?;
+    // Live, every proof file is scanned; a missing scanner stops the start-up.
+    if config.clamd_addr.is_none() && !matches!(config.mail, MailConfig::Mailpit { .. }) {
+        anyhow::bail!("CLAMD_ADDR must be set in production, so proof files are scanned for viruses");
+    }
+    let files = Files::new(
+        pool.clone(),
+        clock.clone(),
+        Arc::new(LocalDisk::new(&config.upload_dir)),
+        Arc::new(FileCipher::new(&config.master_key()?)),
+    );
+    let mut proofs = Proofs::new(pool.clone(), clock.clone(), files.clone());
+    match &config.clamd_addr {
+        Some(addr) => proofs = proofs.scanned_by(Clamd::new(addr)),
+        None => tracing::warn!("CLAMD_ADDR isn't set; proof files aren't scanned for viruses"),
+    }
     let addresses = reply_addresses(config)?;
     let links = debtor_links(config, &pool, &clock)?;
     let mut state = AppState::new(
@@ -180,7 +198,8 @@ async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> an
         &config.master_key()?,
         &config.public_base_url,
     )
-    .with_web_dir(&config.web_dir);
+    .with_web_dir(&config.web_dir)
+    .with_proofs(proofs);
     if let Some(secret) = &config.inbound_secret {
         let replies = Replies::new(pool.clone(), clock.clone(), addresses.clone(), links.clone());
         state = state.with_inbound(secret.clone(), replies);
@@ -208,6 +227,11 @@ async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> an
         loop {
             if let Err(err) = scheduler.run().await {
                 tracing::error!(%err, "drafting reminders failed");
+            }
+            match files.sweep().await {
+                Ok(0) => {}
+                Ok(deleted) => tracing::info!(deleted, "proof files past their deadline deleted"),
+                Err(err) => tracing::error!(%err, "deleting proof files failed"),
             }
             tokio::time::sleep(SCHEDULE_EVERY).await;
         }

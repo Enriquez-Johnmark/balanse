@@ -226,3 +226,60 @@ async fn g4_pressing_stop_emailing_me_opts_the_debtor_out(pool: PgPool) {
         .unwrap();
     assert_eq!(state, "opted_out");
 }
+
+const JPEG: &[u8] = b"\xFF\xD8\xFF\xE0 a photo of a GCash receipt";
+
+async fn counts(pool: &PgPool) -> (i64, i64) {
+    let claims: i64 = sqlx::query_scalar("select count(*) from claims")
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    let files: i64 = sqlx::query_scalar("select count(*) from claim_files")
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    (claims, files)
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g5_i_have_paid_keeps_an_attached_photo_with_the_claim(pool: PgPool) {
+    let clock = clock();
+    let path = santos_page(&pool, &clock).await;
+    let dir = tempfile::tempdir().unwrap();
+    let app = common::app_with_proofs(&pool, &clock, dir.path());
+
+    let (status, _) = common::post_files(&app, &format!("{path}/paid"), &[("file", "receipt.jpg", JPEG)]).await;
+
+    assert_eq!(status.as_u16(), 303);
+    assert_eq!(counts(&pool).await, (1, 1));
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g5_a_refused_file_leaves_no_claim_and_says_why(pool: PgPool) {
+    let clock = clock();
+    let path = santos_page(&pool, &clock).await;
+    let dir = tempfile::tempdir().unwrap();
+    let app = common::app_with_proofs(&pool, &clock, dir.path());
+
+    let (wrong, page) = common::post_files(&app, &format!("{path}/paid"), &[("file", "notes.txt", b"just text")]).await;
+    let (four, _) = common::post_files(
+        &app,
+        &format!("{path}/paid"),
+        &[
+            ("file", "1.jpg", JPEG),
+            ("file", "2.jpg", JPEG),
+            ("file", "3.jpg", JPEG),
+            ("file", "4.jpg", JPEG),
+        ],
+    )
+    .await;
+
+    assert_eq!((wrong.as_u16(), four.as_u16()), (422, 422));
+    assert!(page.contains("Only photos"), "{page}");
+    assert_eq!(counts(&pool).await, (0, 0));
+    let state: String = sqlx::query_scalar("select state from debtors")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(state, "active", "nothing changed; the Contact can try again");
+}

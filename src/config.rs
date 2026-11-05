@@ -53,6 +53,11 @@ pub struct Config {
     pub inbound_secret: Option<SecretString>,
     /// The built React app (`WEB_DIR`, default `web/dist`).
     pub web_dir: std::path::PathBuf,
+    /// Where encrypted proof files are kept (`UPLOAD_DIR`, default `uploads`).
+    pub upload_dir: std::path::PathBuf,
+    /// ClamAV's daemon (`CLAMD_ADDR`, `host:port`), which scans every proof
+    /// file; required in production.
+    pub clamd_addr: Option<String>,
 }
 
 /// A setting that is missing or can't be used.
@@ -93,6 +98,8 @@ impl Config {
             bind_addr: optional("BIND_ADDR").unwrap_or_else(|| "127.0.0.1:3000".to_owned()),
             inbound_secret: optional("INBOUND_SECRET").map(SecretString::from),
             web_dir: optional("WEB_DIR").map_or_else(|| "web/dist".into(), Into::into),
+            upload_dir: optional("UPLOAD_DIR").map_or_else(|| "uploads".into(), Into::into),
+            clamd_addr: optional("CLAMD_ADDR"),
         };
         config.master_key()?;
         Ok(config)

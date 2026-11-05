@@ -214,3 +214,42 @@ pub fn files(pool: &PgPool, clock: &Arc<FixedClock>, dir: &std::path::Path) -> b
         Arc::new(FileCipher::new(&master())),
     )
 }
+
+/// `POST path` as a multipart form from our own origin, as the Debtor
+/// page's "I've paid" form sends it: each `(name, filename, bytes)` is one
+/// field. Returns the status and the page's text.
+pub async fn post_files(
+    app: &axum::Router,
+    path: &str,
+    fields: &[(&str, &str, &[u8])],
+) -> (axum::http::StatusCode, String) {
+    use tower::ServiceExt;
+    let boundary = "balanse-test-boundary";
+    let mut body = Vec::new();
+    for (name, filename, bytes) in fields {
+        body.extend_from_slice(
+            format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"; filename=\"{filename}\"\r\n\r\n")
+                .as_bytes(),
+        );
+        body.extend_from_slice(bytes);
+        body.extend_from_slice(b"\r\n");
+    }
+    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
+    let request = axum::http::Request::post(path)
+        .header("origin", BASE_URL)
+        .header("content-type", format!("multipart/form-data; boundary={boundary}"))
+        .body(axum::body::Body::from(body))
+        .unwrap();
+    let response = app.clone().oneshot(request).await.unwrap();
+    let status = response.status();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    (status, String::from_utf8_lossy(&body).into_owned())
+}
+
+/// The web app at [`BASE_URL`], keeping proof files in `dir`.
+pub fn app_with_proofs(pool: &PgPool, clock: &Arc<FixedClock>, dir: &std::path::Path) -> axum::Router {
+    let proofs = balanse::balanse::proofs::Proofs::new(pool.clone(), clock.clone(), files(pool, clock, dir));
+    balanse::balanse::web::router(
+        balanse::balanse::web::AppState::new(pool.clone(), clock.clone(), &master(), BASE_URL).with_proofs(proofs),
+    )
+}

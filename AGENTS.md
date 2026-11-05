@@ -13,7 +13,7 @@ Each gate needs the owner's explicit "yes"; an approval for one phase never carr
 | 3. Spec & acceptance criteria | done, approved 2026-10-24 (`docs/product/spec.md`) |
 | 4. Architecture (what moves into Nudgewright, what stays here) | done (`docs/architecture.md`, `docs/adr/`, `GLOSSARY.md`) |
 | 5. Implementation readiness gate | done, passed 2026-10-24 |
-| 6+. Build | **in progress**: Nudgewright v0.3.0–v0.4.1 done; M1 (core loop) and M2 (Debtor's page) done; M3–M6 next (`docs/architecture.md`) |
+| 6+. Build | **in progress**: Nudgewright v0.3.0–v0.4.1 done; M1 (core loop), M2 (Debtor's page) and M3 (AI wording, content guard) done; M4–M6 next (`docs/architecture.md`) |
 
 **The readiness gate passed on 2026-10-24; code follows the build order in `docs/architecture.md`.** Research, docs and throwaway prototypes that answer a specific question are in scope; prototypes live in `prototypes/<question>/` and are deleted once their answer is recorded.
 

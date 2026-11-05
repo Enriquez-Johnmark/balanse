@@ -157,11 +157,33 @@ const GROUPS: &[Group] = &[
 /// Why `text`, written by `writer`, must not be sent, if it mustn't.
 /// `facts` are inserted by Balanse and left out of the check.
 pub fn check(text: &str, facts: &[&str], writer: Writer) -> Option<&'static str> {
-    let mut words = text.to_lowercase();
-    for fact in facts.iter().filter(|fact| !fact.trim().is_empty()) {
-        words = words.replace(&fact.to_lowercase(), " ");
+    // Whole words only: a name inside a blocked word ("Pol" in "police")
+    // must not hide it.
+    let mut tokens: Vec<Option<String>> = tokens(text).into_iter().map(Some).collect();
+    for fact in facts
+        .iter()
+        .map(|fact| self::tokens(fact))
+        .filter(|fact| !fact.is_empty())
+    {
+        let mut at = 0;
+        while at + fact.len() <= tokens.len() {
+            if tokens[at..at + fact.len()]
+                .iter()
+                .zip(&fact)
+                .all(|(word, f)| word.as_ref() == Some(f))
+            {
+                tokens[at..at + fact.len()].iter_mut().for_each(|word| *word = None);
+                at += fact.len();
+            } else {
+                at += 1;
+            }
+        }
     }
-    let tokens = tokens(&words);
+    // A removed fact still separates words, so no term spans it.
+    let tokens: Vec<String> = tokens
+        .into_iter()
+        .map(|word| word.unwrap_or_else(|| "\u{0}".to_owned()))
+        .collect();
     GROUPS
         .iter()
         .filter(|group| writer == Writer::Model || !group.owner_may_write)
@@ -213,6 +235,18 @@ mod tests {
                 "{text}: {reason:?}"
             );
         }
+    }
+
+    #[test]
+    fn d5_a_name_inside_a_blocked_word_doesnt_hide_it() {
+        let text = "Hi Pol, we will report you to the police.";
+
+        assert!(check(text, &["Pol"], Writer::Owner).is_some());
+    }
+
+    #[test]
+    fn d5_a_name_that_is_a_blocked_word_is_only_a_name() {
+        assert_eq!(check("Hi Pin, salamat po!", &["Pin"], Writer::Owner), None);
     }
 
     #[test]

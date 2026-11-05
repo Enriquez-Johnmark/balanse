@@ -30,7 +30,7 @@ use super::debtor_links::DebtorLinks;
 use super::guard;
 use super::reminders::{MANILA, open_debts, sent_dates};
 use super::schedule::cap_allows;
-use super::wording::{debt_block, footer};
+use super::wording::{debt_block, first_name, footer};
 use crate::engine::accounts::is_email_address;
 use crate::engine::clock::Clock;
 use crate::engine::ids::{MessageId, TenantId};
@@ -121,13 +121,15 @@ impl BalanseChecks {
         }
         // The Owner's words, without the facts Balanse inserted (D5, R8).
         let block = debt_block(&debts);
-        let facts = [
+        let mut facts = vec![
             block.as_str(),
             footer.as_str(),
             reminder.business_name.as_str(),
             reminder.debtor_name.as_str(),
             reminder.contact_name.as_str(),
+            first_name(&reminder.contact_name),
         ];
+        facts.extend(debts.iter().map(|debt| debt.invoice_number.as_str()));
         let text = format!("{}\n{}", email.subject, email.body_text);
         if let Some(reason) = guard::check(&text, &facts, guard::Writer::Owner) {
             return refuse(reason.to_owned());

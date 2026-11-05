@@ -8,6 +8,8 @@
 //! email footer is replaced by a short one that still names the Business,
 //! Balanse and who answers for the Contact's details (R9, R15).
 
+use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
+
 /// The SMS version of `body` from `business`: lines equal to one in
 /// `invoice_lines` are kept; any other line with a link or a phone number
 /// is dropped, and the footer is replaced by [`sms_footer`].
@@ -107,14 +109,9 @@ fn has_phone_number(line: &str) -> bool {
     false
 }
 
+/// Everything but URL-unreserved characters is encoded (RFC 3986).
+const QUERY_VALUE: &AsciiSet = &NON_ALPHANUMERIC.remove(b'-').remove(b'_').remove(b'.').remove(b'~');
+
 fn percent_encoded(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    for byte in text.bytes() {
-        if byte.is_ascii_alphanumeric() || b"-_.~".contains(&byte) {
-            out.push(char::from(byte));
-        } else {
-            out.push_str(&format!("%{byte:02X}"));
-        }
-    }
-    out
+    utf8_percent_encode(text, QUERY_VALUE).to_string()
 }

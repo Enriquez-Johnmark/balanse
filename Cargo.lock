@@ -232,6 +232,7 @@ dependencies = [
  "dotenvy",
  "hmac",
  "nudgewright",
+ "percent-encoding",
  "reqwest",
  "secrecy",
  "serde",

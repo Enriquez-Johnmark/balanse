@@ -4,6 +4,7 @@ pub mod account_emails;
 pub mod businesses;
 pub mod claims;
 pub mod contact_actions;
+pub mod copy;
 pub mod debtor_links;
 pub mod debtors;
 pub mod debts;

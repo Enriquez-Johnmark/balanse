@@ -131,6 +131,14 @@ pub enum ProofError {
     Database(#[from] sqlx::Error),
 }
 
+/// A file that passed [`Proofs::check`]: the right type and size, and
+/// scanned clean. Only `check` makes one.
+#[derive(Debug, Clone, Copy)]
+pub struct Checked<'a> {
+    bytes: &'a [u8],
+    kind: FileKind,
+}
+
 /// One proof file on a claim.
 #[derive(Debug, Clone)]
 pub struct Proof {
@@ -185,7 +193,7 @@ impl Proofs {
     /// Checks `bytes` without keeping them: the type, the size and the
     /// virus scan. The page runs this before a claim is recorded, so a
     /// refused file never leaves a claim behind.
-    pub async fn check(&self, business: BusinessId, bytes: &[u8]) -> Result<FileKind, ProofError> {
+    pub async fn check<'a>(&self, business: BusinessId, bytes: &'a [u8]) -> Result<Checked<'a>, ProofError> {
         if bytes.is_empty() {
             return Err(ProofError::NoFile);
         }
@@ -206,12 +214,24 @@ impl Proofs {
                 }
             }
         }
-        Ok(kind)
+        Ok(Checked { bytes, kind })
     }
 
-    /// Keeps `bytes` on `claim`, after [`Proofs::check`] passes them.
+    /// Checks `bytes` and keeps them on `claim`.
     pub async fn add(&self, business: BusinessId, claim: ClaimId, bytes: &[u8]) -> Result<FileId, ProofError> {
-        let kind = self.check(business, bytes).await?;
+        let checked = self.check(business, bytes).await?;
+        self.store(business, claim, checked).await
+    }
+
+    /// Keeps a file [`Proofs::check`] passed on `claim`, without scanning it
+    /// again.
+    pub async fn store(
+        &self,
+        business: BusinessId,
+        claim: ClaimId,
+        checked: Checked<'_>,
+    ) -> Result<FileId, ProofError> {
+        let Checked { bytes, kind } = checked;
         let size = i32::try_from(bytes.len()).map_err(|_| ProofError::TooBig)?;
         let mut tx = self.pool.begin().await?;
         // One upload at a time per claim, so two can't both squeeze under the limit.

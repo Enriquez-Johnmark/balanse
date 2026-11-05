@@ -174,3 +174,16 @@ async fn delete_by(pool: &PgPool, id: balanse::engine::ids::FileId) -> time::Off
         .await
         .unwrap()
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g5_a_checked_file_is_stored_without_a_second_scan(pool: PgPool) {
+    let world = world(&pool).await;
+    let scanning = FakeClamd::start(Behaviour::Scans).await;
+    let proofs = world.proofs(&pool).scanned_by(Clamd::new(scanning.addr()));
+
+    let checked = proofs.check(world.business, JPEG).await.unwrap();
+    proofs.store(world.business, world.claim, checked).await.unwrap();
+
+    assert_eq!(scanning.streams.lock().unwrap().len(), 1);
+    assert_eq!(proofs.for_claim(world.business, world.claim).await.unwrap().len(), 1);
+}

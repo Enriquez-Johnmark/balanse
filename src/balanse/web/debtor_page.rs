@@ -296,21 +296,23 @@ async fn paid(
         },
         None => Vec::new(),
     };
+    let mut checked = Vec::with_capacity(files.len());
     if !files.is_empty() {
         let Some(proofs) = &state.proofs else {
             return refused(&state, &token, |w| w.not_safe).await;
         };
         for file in &files {
-            if let Err(err) = proofs.check(link.business, file).await {
-                return refused(&state, &token, message(&err)).await;
+            match proofs.check(link.business, file).await {
+                Ok(file) => checked.push(file),
+                Err(err) => return refused(&state, &token, message(&err)).await,
             }
         }
     }
     let claim = state.actions.claim_paid(link.business, link.debtor).await?;
     if let Some(proofs) = &state.proofs {
-        for file in &files {
-            // Checked above; a failure now is the store's, and the claim stands.
-            if let Err(err) = proofs.add(link.business, claim, file).await {
+        for file in checked {
+            // A failure now is the store's (or the claim is full), and the claim stands.
+            if let Err(err) = proofs.store(link.business, claim, file).await {
                 tracing::error!(%err, "keeping a checked proof file failed");
             }
         }

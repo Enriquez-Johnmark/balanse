@@ -122,3 +122,20 @@ async fn h1_each_row_shows_drafts_waiting_and_the_last_message(pool: PgPool) {
         ("by_hand", time::macros::datetime!(2026-11-03 02:00 UTC))
     );
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn h1_a_discarded_draft_isnt_the_last_message(pool: PgPool) {
+    let clock = clock();
+    let business = business(&pool, &clock).await;
+    debtor_owing(&pool, &clock, business, "Discarded", "2026-10-20").await;
+    clock.advance(Duration::hours(22));
+    scheduler(&pool, &clock).run().await.unwrap();
+    sqlx::query("update outbox_messages set status = 'cancelled' where status = 'draft'")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let rows = Debtors::new(pool.clone(), clock.clone()).list(business).await.unwrap();
+
+    assert_eq!((rows[0].drafts_waiting, rows[0].last_message.as_ref()), (0, None));
+}

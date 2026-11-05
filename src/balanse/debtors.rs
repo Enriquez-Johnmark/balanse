@@ -71,7 +71,8 @@ pub struct DebtorSummary {
     pub oldest_due: Option<time::Date>,
     /// How many of its reminders wait for the Owner's approval.
     pub drafts_waiting: i64,
-    /// The last message sent or approved, if any.
+    /// The last message approved or sent, if any; never a discarded,
+    /// expired or blocked one.
     pub last_message: Option<LastMessage>,
 }
 
@@ -158,7 +159,8 @@ impl Debtors {
                        select m.status, coalesce(m.sent_at, m.approved_at, m.created_at) as at
                        from reminders r
                        join outbox_messages m on m.tenant_id = r.tenant_id and m.id = r.message_id
-                       where r.tenant_id = d.tenant_id and r.debtor_id = d.id and m.status <> 'draft'
+                       where r.tenant_id = d.tenant_id and r.debtor_id = d.id
+                         and m.status in ('approved', 'sending', 'sent', 'failed', 'unconfirmed')
                        union all
                        select 'by_hand', s.sent_at from manual_sends s
                        where s.tenant_id = d.tenant_id and s.debtor_id = d.id

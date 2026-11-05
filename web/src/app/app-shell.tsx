@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query"
-import { InboxIcon, LogOutIcon, UsersIcon, type LucideIcon } from "lucide-react"
+import { InboxIcon, LogOutIcon, SettingsIcon, UsersIcon, type LucideIcon } from "lucide-react"
 import { Navigate, NavLink, Outlet, useLocation } from "react-router"
 
 import { api, ApiError } from "@/api/client"
@@ -26,6 +26,7 @@ type NavItem = { to: string; label: string; icon: LucideIcon }
 const navigation: NavItem[] = [
   { to: "/", label: "Debtors", icon: UsersIcon },
   { to: "/drafts", label: "Drafts", icon: InboxIcon },
+  { to: "/settings", label: "Settings", icon: SettingsIcon },
 ]
 
 /** The logged-in frame: navigation beside (or, on a phone, above) the page. */

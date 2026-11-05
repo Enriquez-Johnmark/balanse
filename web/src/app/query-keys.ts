@@ -7,6 +7,10 @@ export const debtorKeys = {
   detail: (id: string) => [...debtorKeys.all(), "detail", id] as const,
 }
 
+export const settingsKeys = {
+  all: () => ["settings"] as const,
+}
+
 export const draftKeys = {
   list: () => ["drafts"] as const,
 }

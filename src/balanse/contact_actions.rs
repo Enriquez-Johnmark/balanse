@@ -182,8 +182,8 @@ impl ContactActions {
                     "{} of {} disputes what they owe.",
                     about.contact_name, about.debtor_name
                 ),
-                then: "Reminders have stopped. Once it's sorted out, you can resume them; until then, any \
-                       reminder you approve says the amount is disputed.",
+                then: "Reminders have stopped. Once it's sorted out, you can resume them; every later \
+                       reminder says the amount is disputed, as the rules for debt follow-up require.",
             },
         )
         .await?;

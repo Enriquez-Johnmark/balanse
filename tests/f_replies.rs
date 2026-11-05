@@ -366,3 +366,27 @@ async fn f1_a_redelivered_reply_finishes_what_a_crash_left_undone(pool: PgPool) 
         ]
     );
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn f3_after_a_dispute_the_owner_records_later_reminders_say_disputed(pool: PgPool) {
+    let world = world(&pool).await;
+    let outcomes = world.outcomes(&pool);
+    outcomes
+        .disputed(world.business, world.debtor, "ana@reyes.test")
+        .await
+        .unwrap();
+    world.clock.advance(Duration::days(1));
+    outcomes
+        .resume(world.business, world.debtor, "ana@reyes.test")
+        .await
+        .unwrap();
+    world.clock.advance(Duration::days(1));
+
+    world.scheduler.run().await.unwrap();
+
+    let body: String = sqlx::query_scalar("select body_text from outbox_messages where status = 'draft'")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert!(body.contains("(disputed)"), "{body}");
+}

@@ -124,11 +124,21 @@ impl Outcomes {
         Ok(())
     }
 
-    /// The Debtor disputes what it owes; reminders stop.
+    /// The Debtor disputes what it owes; reminders stop, and its Debts are
+    /// marked disputed, so any later message says so (R6).
     pub async fn disputed(&self, business: BusinessId, debtor: DebtorId, by: &str) -> Result<(), OutcomeError> {
         let now = self.clock.now();
         let mut tx = self.pool.begin().await?;
         self.set_state(&mut tx, business, debtor, Decision::Disputed).await?;
+        sqlx::query!(
+            "update debts set status = 'disputed', updated_at = $3
+             where tenant_id = $1 and debtor_id = $2 and status in ('open', 'payment_claimed')",
+            business.as_uuid(),
+            debtor.as_uuid(),
+            now,
+        )
+        .execute(&mut *tx)
+        .await?;
         record(&mut tx, business, debtor, now, by, "debtor.disputed", json!({})).await?;
         tx.commit().await?;
         cancel_waiting(&self.outbox, &self.pool, business, debtor, by).await?;

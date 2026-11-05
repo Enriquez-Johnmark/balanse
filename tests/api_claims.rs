@@ -110,3 +110,62 @@ async fn g2_the_owner_sees_the_claim_downloads_its_proof_and_confirms_it_once(po
         (404, 404, 204, 409)
     );
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g5_the_owners_paid_decision_closes_an_open_claim_and_its_files_go_in_30_days(pool: PgPool) {
+    use balanse::engine::clock::Clock as _;
+    let clock = clock();
+    let reyes = business(&pool, &clock).await;
+    let debtor = Debtors::new(pool.clone(), clock.clone())
+        .create(
+            reyes,
+            &DebtorInput {
+                business_name: "Santos Trading".to_owned(),
+                contact_name: "Lito".to_owned(),
+                contact_email: "lito@santos.test".to_owned(),
+                contact_mobile: String::new(),
+                language: "english".to_owned(),
+            },
+        )
+        .await
+        .unwrap();
+    let claim = ContactActions::new(pool.clone(), clock.clone(), common::links(&pool, &clock))
+        .claim_paid(reyes, debtor)
+        .await
+        .unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    Proofs::new(pool.clone(), clock.clone(), common::files(&pool, &clock, dir.path()))
+        .add(reyes, claim, JPEG)
+        .await
+        .unwrap();
+    let app = common::app_with_proofs(&pool, &clock, dir.path());
+    let ana = log_in(&app, &pool, "ana@reyes.test").await;
+
+    let paid = call(
+        &app,
+        "POST",
+        &format!("/api/debtors/{}/outcome", debtor.as_uuid()),
+        Some(serde_json::json!({ "outcome": "paid", "until": null })),
+        Some(&ana),
+    )
+    .await;
+    let page = call(
+        &app,
+        "GET",
+        &format!("/api/debtors/{}", debtor.as_uuid()),
+        None,
+        Some(&ana),
+    )
+    .await;
+
+    assert_eq!(paid.status.as_u16(), 204);
+    assert!(page.body["claim"].is_null(), "{}", page.body);
+    let (outcome, delete_by): (Option<String>, time::OffsetDateTime) = sqlx::query_as(
+        "select c.outcome, s.delete_by from claims c join claim_files f on f.claim_id = c.id join stored_files s on s.id = f.id",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(outcome.as_deref(), Some("confirmed"));
+    assert_eq!(delete_by, clock.now() + time::Duration::days(30));
+}

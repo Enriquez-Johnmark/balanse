@@ -412,7 +412,15 @@ async fn outcome(
         _ => return Err(ApiError::invalid("Choose paid, promised, disputed or resume.")),
     };
     match result {
-        Ok(()) => Ok(StatusCode::NO_CONTENT),
+        Ok(()) => {
+            // An open claim of payment is answered by the decision too (G2, G5).
+            state
+                .claims
+                .close_open(business, debtor, form.outcome == "paid", by)
+                .await
+                .map_err(ApiError::internal)?;
+            Ok(StatusCode::NO_CONTENT)
+        }
         Err(OutcomeError::NotFound) => Err(ApiError::NotFound),
         Err(OutcomeError::PastDate) => Err(ApiError::invalid("The promised date must be today or later.")),
         Err(OutcomeError::Stopped) => Err(ApiError::Refused {

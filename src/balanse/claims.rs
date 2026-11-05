@@ -57,11 +57,61 @@ impl Claims {
         }
     }
 
-    /// The Debtor did pay: its Debts are settled.
+    /// The Debtor did pay: its Debts are settled. They are settled before
+    /// the claim is marked confirmed, so a failure in between leaves the
+    /// claim open to confirm again; settling twice changes nothing.
     pub async fn confirm(&self, business: BusinessId, claim: ClaimId, by: &str) -> Result<(), ClaimError> {
-        let debtor = self.settle(business, claim, "confirmed", by).await?;
+        let debtor = self.open_claim(business, claim).await?;
         self.outcomes.paid(business, debtor, by).await?;
+        self.settle(business, claim, "confirmed", by).await?;
         self.delete_files_soon(business, claim).await
+    }
+
+    /// Closes `debtor`'s open claims after the Owner decided another way:
+    /// "paid" confirms them, any other decision rejects them. Their files
+    /// are deleted 30 days later (G5).
+    pub async fn close_open(
+        &self,
+        business: BusinessId,
+        debtor: DebtorId,
+        paid: bool,
+        by: &str,
+    ) -> Result<(), ClaimError> {
+        let open = sqlx::query_scalar!(
+            "select id from claims where tenant_id = $1 and debtor_id = $2 and settled_at is null",
+            business.as_uuid(),
+            debtor.as_uuid(),
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        for claim in open {
+            let claim = ClaimId::from(claim);
+            match self
+                .settle(business, claim, if paid { "confirmed" } else { "rejected" }, by)
+                .await
+            {
+                Ok(_) | Err(ClaimError::AlreadySettled) => {}
+                Err(err) => return Err(err),
+            }
+            self.delete_files_soon(business, claim).await?;
+        }
+        Ok(())
+    }
+
+    /// `claim`'s Debtor, if it is still open.
+    async fn open_claim(&self, business: BusinessId, claim: ClaimId) -> Result<DebtorId, ClaimError> {
+        let row = sqlx::query!(
+            "select debtor_id, settled_at from claims where tenant_id = $1 and id = $2",
+            business.as_uuid(),
+            claim.as_uuid(),
+        )
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or(ClaimError::NotFound)?;
+        if row.settled_at.is_some() {
+            return Err(ClaimError::AlreadySettled);
+        }
+        Ok(row.debtor_id.into())
     }
 
     /// The payment didn't arrive: reminders resume where they left off.

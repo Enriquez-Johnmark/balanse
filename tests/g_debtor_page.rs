@@ -38,9 +38,10 @@ async fn g1_a_genuine_link_opens_its_debtor_until_it_expires(pool: PgPool) {
     let url = links.issue(reyes, debtor).await.unwrap();
     let again = links.issue(reyes, debtor).await.unwrap();
     let opened = links.open(token(&url)).await.unwrap();
-    let forged = links
-        .open(&format!("{}00", &token(&url)[..token(&url).len() - 2]))
-        .await;
+    // The genuine token with its last character changed, never to itself.
+    let genuine = token(&url);
+    let last = if genuine.ends_with('0') { '1' } else { '0' };
+    let forged = links.open(&format!("{}{last}", &genuine[..genuine.len() - 1])).await;
     clock.advance(WORKS_FOR);
     let expired = links.open(token(&url)).await;
 

@@ -45,9 +45,27 @@ pub struct Reminder<'a> {
     pub business_name: &'a str,
 }
 
+/// The words the model may write for a reminder (M3): everything but the
+/// facts, which Balanse always inserts itself.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Lines {
+    /// The subject line.
+    pub subject: String,
+    /// One to three sentences after the greeting.
+    pub opening: String,
+    /// One short sentence before the sign-off.
+    pub closing: String,
+}
+
+/// The first word of a Contact's name, for the greeting.
+pub fn first_name(contact_name: &str) -> &str {
+    contact_name.split_whitespace().next().unwrap_or(contact_name)
+}
+
 /// The reminder's wording, listing every Debt in `debts` (C2) and linking
-/// to the Debtor's page at `page_url` (G1).
-pub fn reminder(reminder: &Reminder<'_>, debts: &[DebtLine], page_url: &str) -> Wording {
+/// to the Debtor's page at `page_url` (G1). `written` is the model's wording;
+/// without it, the fixed template's (E2).
+pub fn reminder(reminder: &Reminder<'_>, debts: &[DebtLine], page_url: &str, written: Option<&Lines>) -> Wording {
     let taglish = reminder.language == "taglish";
     let invoices = match debts {
         [one] => format!("invoice {}", one.invoice_number),
@@ -60,7 +78,17 @@ pub fn reminder(reminder: &Reminder<'_>, debts: &[DebtLine], page_url: &str) -> 
         (false, Step::HeadsUp) => format!("Coming up: {invoices} from {business}"),
         (false, _) => format!("Reminder: {invoices} from {business}"),
     };
-    let (opening, closing) = lines(taglish, reminder.step);
+    let (subject, opening, closing) = match written {
+        Some(lines) => (
+            lines.subject.trim().to_owned(),
+            lines.opening.trim(),
+            lines.closing.trim(),
+        ),
+        None => {
+            let (opening, closing) = lines(taglish, reminder.step);
+            (subject, opening, closing)
+        }
+    };
     let page = if taglish {
         "Makikita po dito ang mga detalye at kung paano magbayad:"
     } else {
@@ -69,7 +97,7 @@ pub fn reminder(reminder: &Reminder<'_>, debts: &[DebtLine], page_url: &str) -> 
     let body = format!(
         "{greeting} {name},\n\n{opening}\n\n{list}\n\n{page} {page_url}\n\n{closing}\n\n{business}\n\n{footer}\n",
         greeting = "Hi",
-        name = reminder.contact_name,
+        name = first_name(reminder.contact_name),
         list = debt_block(debts),
         footer = footer(business),
     );

@@ -21,6 +21,7 @@ use time::{Date, Duration, OffsetDateTime, Time, UtcOffset};
 use super::businesses::BusinessId;
 use super::debtor_links::DebtorLinks;
 use super::debtors::DebtorId;
+use super::drafting::{Brief, Overdue, WordingSource};
 use super::schedule::{Next, Plan, Step, plan};
 use super::wording::{self, DebtLine, Reminder};
 use crate::engine::clock::Clock;
@@ -105,6 +106,8 @@ pub struct Scheduler {
     outbox: Outbox,
     replies: ReplyAddresses,
     links: DebtorLinks,
+    /// Writes the wording, when a model is configured (M3).
+    wording: Option<Arc<dyn WordingSource>>,
 }
 
 /// An active Debtor with open Debts, as the run finds it.
@@ -112,6 +115,7 @@ struct Candidate {
     business: BusinessId,
     debtor: DebtorId,
     business_name: String,
+    debtor_name: String,
     contact_name: String,
     contact_email: String,
     language: String,
@@ -133,7 +137,16 @@ impl Scheduler {
             clock,
             replies,
             links,
+            wording: None,
         }
+    }
+
+    /// Has `wording` write each reminder's wording; without it, or when it
+    /// declines, the template is used (E2).
+    #[must_use]
+    pub fn with_wording(mut self, wording: Arc<dyn WordingSource>) -> Self {
+        self.wording = Some(wording);
+        self
     }
 
     /// Expires overdue Drafts, then drafts every reminder due now.
@@ -162,7 +175,8 @@ impl Scheduler {
 
     async fn candidates(&self) -> Result<Vec<Candidate>, sqlx::Error> {
         let rows = sqlx::query!(
-            r#"select d.id, d.tenant_id, a.name as business_name, d.contact_name, d.contact_email, d.language,
+            r#"select d.id, d.tenant_id, a.name as business_name, d.business_name as debtor_name, d.contact_name,
+                      d.contact_email, d.language,
                       d.state, d.promised_until, d.cycle_start, b.heads_up,
                       min(t.due_date) as "due!",
                       (array_agg(t.created_at order by t.due_date, t.created_at))[1] as "due_added!"
@@ -182,6 +196,7 @@ impl Scheduler {
                 business: row.tenant_id.into(),
                 debtor: row.id.into(),
                 business_name: row.business_name,
+                debtor_name: row.debtor_name,
                 contact_name: row.contact_name,
                 contact_email: row.contact_email,
                 language: row.language,
@@ -291,6 +306,20 @@ impl Scheduler {
     ) -> Result<(), SchedulerError> {
         let debts = open_debts(&self.pool, c.business, c.debtor).await?;
         let page_url = self.links.issue(c.business, c.debtor).await?;
+        let written = match &self.wording {
+            Some(source) => {
+                let brief = Brief::new(
+                    &c.debtor_name,
+                    wording::first_name(&c.contact_name),
+                    debts.len(),
+                    Overdue::since(c.due, now.to_offset(MANILA).date()),
+                    &c.language,
+                    step,
+                );
+                source.write(c.business, &brief).await
+            }
+            None => None,
+        };
         let wording = wording::reminder(
             &Reminder {
                 step,
@@ -300,6 +329,7 @@ impl Scheduler {
             },
             &debts,
             &page_url,
+            written.as_ref(),
         );
         let id = ReminderId::new();
         let email = Email {

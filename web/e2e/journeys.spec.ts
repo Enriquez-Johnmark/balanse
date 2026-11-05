@@ -99,3 +99,39 @@ test.describe("a visitor", () => {
     expect(balanse("signups")).not.toContain(email)
   })
 })
+
+test("g2 a Contact says they've paid with proof, and the Owner confirms it", async ({
+  page,
+  browser,
+}) => {
+  await addDebtor(page, `Bautista Media ${run}`, "lito@bautista.test")
+  balanse("dev-schedule", "--date", nextMonday())
+  await page.goto("/drafts")
+  const card = page.locator("[data-slot=card]", { hasText: `Bautista Media ${run}` })
+  const body = (await card.textContent()) ?? ""
+  const link = body.match(/https?:\/\/\S+?\/d\/[0-9a-f]+/)?.[0]
+  expect(link, body).toBeTruthy()
+
+  // The Contact, not logged in, on their phone.
+  const contact = await browser.newPage({ storageState: { cookies: [], origins: [] } })
+  await contact.goto(link!)
+  await expect(contact.getByText("INV-7")).toBeVisible()
+  // The Debtor's language is Taglish, the form's default.
+  await contact.getByLabel(/Proof ng bayad/).setInputFiles({
+    name: "receipt.jpg",
+    mimeType: "image/jpeg",
+    buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x10, 0x20]),
+  })
+  await contact.getByRole("button", { name: "Nagbayad na po ako" }).click()
+  await expect(contact.getByText(/kukumpirmahin nila ito/)).toBeVisible()
+  await contact.close()
+
+  // The Owner sees the claim with its proof, and confirms it.
+  await page.goto("/")
+  await page.getByRole("link", { name: `Bautista Media ${run}` }).click()
+  await expect(page.getByText(/says they've paid/)).toBeVisible()
+  await expect(page.getByRole("link", { name: /Download proof 1/ })).toBeVisible()
+  await page.getByRole("button", { name: "Confirm payment" }).click()
+  await page.getByRole("button", { name: "Confirm payment" }).last().click()
+  await expect(page.getByRole("cell", { name: "Paid" })).toBeVisible()
+})

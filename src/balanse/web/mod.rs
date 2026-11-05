@@ -40,6 +40,7 @@ use crate::engine::accounts::{Logins, Signups};
 use crate::engine::clock::Clock;
 use crate::engine::files::MasterKey;
 use crate::engine::outbox::Outbox;
+use crate::engine::sheets::XlsxReader;
 
 /// The session cookie's name.
 const SESSION_COOKIE: &str = "balanse_session";
@@ -61,6 +62,8 @@ pub struct AppState {
     proofs: Option<Proofs>,
     /// Bounds how many proof uploads are read at once, each held in memory.
     upload_slots: Arc<tokio::sync::Semaphore>,
+    /// Reads Excel files in a sandboxed child process, when this binary can.
+    xlsx: Option<XlsxReader>,
     claims: Claims,
     /// Where links in emails point, e.g. `https://app.balanseapp.com`.
     base_url: String,
@@ -108,6 +111,7 @@ impl AppState {
             wake_sender: Arc::new(Notify::new()),
             inbound: None,
             proofs: None,
+            xlsx: None,
             upload_slots: Arc::new(tokio::sync::Semaphore::new(debtor_page::UPLOAD_SLOTS)),
             claims: Claims::new(pool.clone(), clock.clone(), None),
             web_dir: None,
@@ -131,6 +135,13 @@ impl AppState {
     pub fn with_proofs(mut self, proofs: Proofs) -> Self {
         self.claims = Claims::new(self.pool.clone(), self.clock.clone(), Some(proofs.clone()));
         self.proofs = Some(proofs);
+        self
+    }
+
+    /// Reads imported Excel files with `reader`; without it, only CSV.
+    #[must_use]
+    pub fn with_xlsx(mut self, reader: XlsxReader) -> Self {
+        self.xlsx = Some(reader);
         self
     }
 

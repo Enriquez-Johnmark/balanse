@@ -20,6 +20,7 @@ use balanse::engine::clock::{Clock, FixedClock, SystemClock};
 use balanse::engine::files::{FileCipher, Files, LocalDisk};
 use balanse::engine::outbox::Sender;
 use balanse::engine::scan::Clamd;
+use balanse::engine::sheets::XlsxReader;
 use balanse::engine::signed::Signer;
 
 /// How many messages one drain may send.
@@ -33,6 +34,10 @@ const DRAIN_EVERY: Duration = Duration::from_secs(30);
 const SCHEDULE_EVERY: Duration = Duration::from_secs(60 * 60);
 
 fn main() -> ExitCode {
+    // The engine's sandboxed Excel reader runs this binary as its child.
+    if std::env::args().nth(1).as_deref() == Some(balanse::engine::sheets::CHILD_COMMAND) {
+        return balanse::engine::sheets::run_child();
+    }
     let result = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -219,7 +224,10 @@ async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> an
         &config.public_base_url,
     )
     .with_web_dir(&config.web_dir)
-    .with_proofs(proofs);
+    .with_proofs(proofs)
+    .with_xlsx(XlsxReader::new(
+        std::env::current_exe().context("finding this program for the Excel reader")?,
+    ));
     if let Some(secret) = &config.inbound_secret {
         let replies = Replies::new(pool.clone(), clock.clone(), addresses.clone(), links.clone());
         state = state.with_inbound(secret.clone(), replies);

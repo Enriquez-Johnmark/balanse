@@ -224,6 +224,16 @@ pub async fn post_files(
     path: &str,
     fields: &[(&str, &str, &[u8])],
 ) -> (axum::http::StatusCode, String) {
+    post_files_as(app, path, fields, None).await
+}
+
+/// [`post_files`], logged in with `cookie`.
+pub async fn post_files_as(
+    app: &axum::Router,
+    path: &str,
+    fields: &[(&str, &str, &[u8])],
+    cookie: Option<&str>,
+) -> (axum::http::StatusCode, String) {
     use tower::ServiceExt;
     let boundary = "balanse-test-boundary";
     let mut body = Vec::new();
@@ -236,11 +246,13 @@ pub async fn post_files(
         body.extend_from_slice(b"\r\n");
     }
     body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
-    let request = axum::http::Request::post(path)
+    let mut request = axum::http::Request::post(path)
         .header("origin", BASE_URL)
-        .header("content-type", format!("multipart/form-data; boundary={boundary}"))
-        .body(axum::body::Body::from(body))
-        .unwrap();
+        .header("content-type", format!("multipart/form-data; boundary={boundary}"));
+    if let Some(cookie) = cookie {
+        request = request.header("cookie", cookie);
+    }
+    let request = request.body(axum::body::Body::from(body)).unwrap();
     let response = app.clone().oneshot(request).await.unwrap();
     let status = response.status();
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();

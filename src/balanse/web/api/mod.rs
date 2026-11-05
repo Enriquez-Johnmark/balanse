@@ -10,6 +10,7 @@
 mod claims;
 mod debtors;
 mod drafts;
+mod import;
 mod login;
 mod settings;
 mod signup;
@@ -33,6 +34,7 @@ pub(super) fn routes() -> Router<AppState> {
         .merge(claims::routes())
         .merge(debtors::routes())
         .merge(drafts::routes())
+        .merge(import::routes())
         .merge(settings::routes())
         .merge(login::routes())
         .merge(signup::routes())

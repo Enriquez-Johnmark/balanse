@@ -381,3 +381,32 @@ async fn d5_the_owner_may_add_lawful_legal_action_in_their_own_words(pool: PgPoo
 
     world.approve(&pool, id).await.unwrap();
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn d5_the_guard_runs_again_just_before_sending(pool: PgPool) {
+    let (world, id) = world(&pool).await;
+    // As if approved under older rules: a threat, with a matching approval.
+    let mut email = world.outbox.get(world.business, id).await.unwrap().email;
+    email.body_text = email
+        .body_text
+        .replace("Hi Lito,", "Hi Lito, we will report you to the police.");
+    let hash = balanse::engine::outbox::ContentHash::of(&email);
+    sqlx::query(
+        "update outbox_messages set status = 'approved', body_text = $2, approved_hash = $3, approved_at = now(),
+         approved_by = 'ana@reyes.test' where id = $1",
+    )
+    .bind(id.as_uuid())
+    .bind(&email.body_text)
+    .bind(hash.as_bytes().as_slice())
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let sent = world.drain(&pool).await;
+
+    assert!(sent.is_empty());
+    assert_eq!(
+        world.outbox.get(world.business, id).await.unwrap().status,
+        MessageStatus::Blocked
+    );
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update claims set settled_at = $3, outcome = $4 where tenant_id = $1 and id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3e38640c9ba75f2b5b6ef08b7ea99edef888e1b55d3687c91b11c594513ec48f"
+}

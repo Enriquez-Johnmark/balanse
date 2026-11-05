@@ -175,6 +175,14 @@ impl Debtors {
     }
 }
 
+/// Every problem with `input`, for a form or an import row to show (B1).
+pub fn problems(input: &DebtorInput) -> Vec<String> {
+    match check(input) {
+        Err(DebtorError::Invalid(problems)) => problems,
+        _ => Vec::new(),
+    }
+}
+
 /// A Debtor's fields, trimmed and checked.
 struct Checked {
     business_name: String,

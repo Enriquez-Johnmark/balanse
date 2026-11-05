@@ -142,36 +142,15 @@ impl Debts {
 
     /// Adds an open Debt owed by `debtor`, one of `business`'s Debtors.
     pub async fn create(&self, business: BusinessId, debtor: DebtorId, input: &DebtInput) -> Result<DebtId, DebtError> {
-        let mut problems = Vec::new();
-        let invoice_number = input.invoice_number.trim();
-        if invoice_number.is_empty()
-            || invoice_number.chars().count() > 40
-            || invoice_number.chars().any(char::is_control)
-        {
-            problems.push("Invoice number: 1 to 40 characters".to_owned());
-        }
-        let invoice_date = parse_date(&input.invoice_date);
-        if invoice_date.is_none() {
-            problems.push("Invoice date: a date like 2026-09-15".to_owned());
-        }
-        let amount = input.amount.trim();
-        let centavos = parse_amount(amount);
-        if centavos.is_none() {
-            problems.push("Amount: a peso amount like ₱12,500.00".to_owned());
-        }
-        let due_date = parse_date(&input.due_date);
-        if due_date.is_none() {
-            problems.push("Due date: a date like 2026-10-15".to_owned());
-        }
-        let note = input.note.trim();
-        if note.chars().count() > 500 {
-            problems.push("Note: at most 500 characters".to_owned());
-        }
-        let (Some(invoice_date), Some(centavos), Some(due_date), true) =
-            (invoice_date, centavos, due_date, problems.is_empty())
-        else {
-            return Err(DebtError::Invalid(problems));
-        };
+        let checked = check(input)?;
+        let (invoice_number, invoice_date, amount, centavos, due_date, note) = (
+            checked.invoice_number.as_str(),
+            checked.invoice_date,
+            checked.amount.as_str(),
+            checked.centavos,
+            checked.due_date,
+            checked.note.as_str(),
+        );
         let id = DebtId::new();
         let now = self.clock.now();
         // The join keeps a Debt from being added to another Business's Debtor.
@@ -335,6 +314,62 @@ fn parse_amount(text: &str) -> Option<i64> {
     let centavos: i64 = format!("{fraction:0<2}").parse().ok()?;
     let value = pesos.checked_mul(100)?.checked_add(centavos)?;
     (1..=MAX_CENTAVOS).contains(&value).then_some(value)
+}
+
+/// A Debt's fields, trimmed and checked.
+struct Checked {
+    invoice_number: String,
+    invoice_date: Date,
+    amount: String,
+    centavos: i64,
+    due_date: Date,
+    note: String,
+}
+
+/// Every problem with `input`, for a form or an import row to show (B1).
+pub fn problems(input: &DebtInput) -> Vec<String> {
+    match check(input) {
+        Ok(_) => Vec::new(),
+        Err(DebtError::Invalid(problems)) => problems,
+        Err(_) => Vec::new(),
+    }
+}
+
+fn check(input: &DebtInput) -> Result<Checked, DebtError> {
+    let mut problems = Vec::new();
+    let invoice_number = input.invoice_number.trim();
+    if invoice_number.is_empty() || invoice_number.chars().count() > 40 || invoice_number.chars().any(char::is_control)
+    {
+        problems.push("Invoice number: 1 to 40 characters".to_owned());
+    }
+    let invoice_date = parse_date(&input.invoice_date);
+    if invoice_date.is_none() {
+        problems.push("Invoice date: a date like 2026-09-15".to_owned());
+    }
+    let amount = input.amount.trim();
+    let centavos = parse_amount(amount);
+    if centavos.is_none() {
+        problems.push("Amount: a peso amount like ₱12,500.00".to_owned());
+    }
+    let due_date = parse_date(&input.due_date);
+    if due_date.is_none() {
+        problems.push("Due date: a date like 2026-10-15".to_owned());
+    }
+    let note = input.note.trim();
+    if note.chars().count() > 500 {
+        problems.push("Note: at most 500 characters".to_owned());
+    }
+    match (invoice_date, centavos, due_date) {
+        (Some(invoice_date), Some(centavos), Some(due_date)) if problems.is_empty() => Ok(Checked {
+            invoice_number: invoice_number.to_owned(),
+            invoice_date,
+            amount: amount.to_owned(),
+            centavos,
+            due_date,
+            note: note.to_owned(),
+        }),
+        _ => Err(DebtError::Invalid(problems)),
+    }
 }
 
 #[cfg(test)]

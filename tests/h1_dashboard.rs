@@ -98,3 +98,31 @@ async fn h1_a_debtor_with_a_draft_waiting_needs_action(pool: PgPool) {
 
     assert_eq!(order, ["Waiting", "Alpha"]);
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn h1_each_row_shows_drafts_waiting_and_the_last_message(pool: PgPool) {
+    let clock = clock();
+    let business = business(&pool, &clock).await;
+    let debtor = debtor_owing(&pool, &clock, business, "Waiting", "2026-10-20").await;
+    clock.advance(Duration::hours(22));
+    scheduler(&pool, &clock).run().await.unwrap();
+    let before = Debtors::new(pool.clone(), clock.clone()).list(business).await.unwrap();
+    sqlx::query(
+        "insert into manual_sends (id, tenant_id, debtor_id, sent_at, logged_by, created_at)
+         values (gen_random_uuid(), $1, $2, '2026-11-03 02:00Z', 'ana@reyes.test', now())",
+    )
+    .bind(business.as_uuid())
+    .bind(debtor.as_uuid())
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let after = Debtors::new(pool.clone(), clock.clone()).list(business).await.unwrap();
+
+    assert_eq!((before[0].drafts_waiting, before[0].last_message.as_ref()), (1, None));
+    let last = after[0].last_message.as_ref().unwrap();
+    assert_eq!(
+        (last.status.as_str(), last.at),
+        ("by_hand", time::macros::datetime!(2026-11-03 02:00 UTC))
+    );
+}

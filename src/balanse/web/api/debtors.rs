@@ -44,6 +44,12 @@ pub struct DebtorRow {
     pub open_debts: i64,
     /// The earliest due date among its open Debts, `YYYY-MM-DD`.
     pub oldest_due: Option<String>,
+    /// How many of its reminders wait for approval.
+    pub drafts_waiting: i64,
+    /// The last message's status (an outbox status, or `by_hand`).
+    pub last_message_status: Option<String>,
+    /// When the last message was sent, approved or logged, RFC 3339.
+    pub last_message_at: Option<String>,
 }
 
 async fn list(
@@ -61,6 +67,9 @@ async fn list(
                 promised_until: row.promised_until.map(iso),
                 open_debts: row.open_debts,
                 oldest_due: row.oldest_due.map(iso),
+                drafts_waiting: row.drafts_waiting,
+                last_message_status: row.last_message.as_ref().map(|last| last.status.clone()),
+                last_message_at: row.last_message.map(|last| rfc3339(last.at)),
             })
             .collect(),
     ))

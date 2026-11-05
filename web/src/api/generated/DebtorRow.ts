@@ -31,4 +31,16 @@ open_debts: number,
 /**
  * The earliest due date among its open Debts, `YYYY-MM-DD`.
  */
-oldest_due: string | null, };
+oldest_due: string | null, 
+/**
+ * How many of its reminders wait for approval.
+ */
+drafts_waiting: number, 
+/**
+ * The last message's status (an outbox status, or `by_hand`).
+ */
+last_message_status: string | null, 
+/**
+ * When the last message was sent, approved or logged, RFC 3339.
+ */
+last_message_at: string | null, };

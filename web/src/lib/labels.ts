@@ -38,6 +38,33 @@ const messageStatuses: Record<string, string> = {
   unconfirmed: "Sending wasn't confirmed; not retried",
   expired: "Expired unapproved",
   cancelled: "Discarded",
+  by_hand: "Sent by you",
+}
+
+/** What the Owner should do next for a Debtor on the dashboard (H1). */
+export function nextStep(debtor: { state: string; open_debts: number; drafts_waiting: number }) {
+  if (debtor.drafts_waiting > 0) {
+    return debtor.drafts_waiting === 1
+      ? "Approve the draft"
+      : `Approve ${debtor.drafts_waiting} drafts`
+  }
+  switch (debtor.state) {
+    case "paused":
+      return "Read their reply"
+    case "payment_claimed":
+      return "Confirm or reject their payment"
+    case "needs_call":
+      return "Decide what happens next"
+    case "disputed":
+      return "Sort out the dispute"
+    case "bounced":
+      return "Fix their email address"
+    case "promised":
+      return "Wait for the promised date"
+    case "opted_out":
+      return "Contact them yourself"
+  }
+  return debtor.open_debts > 0 ? "Next reminder on schedule" : "Nothing to do"
 }
 
 /** "needs_call" → "Needs your call". */

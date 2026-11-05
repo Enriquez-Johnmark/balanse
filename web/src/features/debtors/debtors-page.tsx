@@ -24,8 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useDebtors } from "@/features/debtors/queries"
-import { formatDate } from "@/lib/dates"
-import { debtorStateLabel } from "@/lib/labels"
+import { formatDate, formatDay } from "@/lib/dates"
+import { debtorStateLabel, messageStatusLabel, nextStep } from "@/lib/labels"
 
 export function DebtorsPage() {
   const debtors = useDebtors()
@@ -51,7 +51,8 @@ export function DebtorsPage() {
   )
 }
 
-/** What each Debtor owes is counted, never summed (H2). */
+/** What each Debtor owes is counted, never summed (H2); the order is the
+ *  API's (H1): those needing action first. */
 function DebtorList({ debtors }: { debtors: DebtorRow[] }) {
   if (debtors.length === 0) {
     return (
@@ -80,6 +81,8 @@ function DebtorList({ debtors }: { debtors: DebtorRow[] }) {
               <TableHead className="hidden sm:table-cell">Open invoices</TableHead>
               <TableHead className="hidden md:table-cell">Oldest due</TableHead>
               <TableHead>Reminders</TableHead>
+              <TableHead className="hidden lg:table-cell">Last message</TableHead>
+              <TableHead>Next step</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -104,6 +107,27 @@ function DebtorList({ debtors }: { debtors: DebtorRow[] }) {
                       until {formatDate(debtor.promised_until)}
                     </div>
                   ) : null}
+                </TableCell>
+                <TableCell className="hidden whitespace-normal lg:table-cell">
+                  {debtor.last_message_status && debtor.last_message_at ? (
+                    <>
+                      {messageStatusLabel(debtor.last_message_status)}
+                      <div className="text-xs text-muted-foreground">
+                        {formatDay(debtor.last_message_at)}
+                      </div>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
+                <TableCell className="whitespace-normal">
+                  {debtor.drafts_waiting > 0 ? (
+                    <Link to="/drafts" className="font-medium hover:underline">
+                      {nextStep(debtor)}
+                    </Link>
+                  ) : (
+                    nextStep(debtor)
+                  )}
                 </TableCell>
               </TableRow>
             ))}

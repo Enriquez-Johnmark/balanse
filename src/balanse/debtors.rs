@@ -69,6 +69,19 @@ pub struct DebtorSummary {
     pub open_debts: i64,
     /// The earliest due date among its open Debts.
     pub oldest_due: Option<time::Date>,
+    /// How many of its reminders wait for the Owner's approval.
+    pub drafts_waiting: i64,
+    /// The last message sent or approved, if any.
+    pub last_message: Option<LastMessage>,
+}
+
+/// A Debtor's last message, sent by Balanse or logged as sent by hand.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LastMessage {
+    /// The outbox status (`approved`, `sent`, `failed`…) or `by_hand`.
+    pub status: String,
+    /// When it was sent, approved or logged.
+    pub at: time::OffsetDateTime,
 }
 
 /// Debtor errors.
@@ -122,29 +135,49 @@ impl Debtors {
         Ok(id)
     }
 
-    /// Every Debtor of `business`, by name.
+    /// Every Debtor of `business`, in the dashboard's order (H1): those
+    /// needing action first, then active ones, then the rest, each group
+    /// oldest overdue first.
     pub async fn list(&self, business: BusinessId) -> Result<Vec<DebtorSummary>, DebtorError> {
         let rows = sqlx::query!(
-            r#"select d.id, d.business_name, d.contact_name, d.state, d.promised_until,
-                      count(t.id) filter (where t.status in ('open', 'disputed')) as "open_debts!",
-                      min(t.due_date) filter (where t.status in ('open', 'disputed')) as oldest_due
-               from debtors d
-               left join debts t on t.tenant_id = d.tenant_id and t.debtor_id = d.id
-               where d.tenant_id = $1
-               group by d.id
-               -- H1: needing action first, then active, then the rest; each
-               -- group oldest overdue first.
+            r#"with summary as (
+                   select d.id, d.business_name, d.contact_name, d.state, d.promised_until,
+                          (select count(*) from debts t
+                           where t.tenant_id = d.tenant_id and t.debtor_id = d.id
+                             and t.status in ('open', 'disputed')) as open_debts,
+                          (select min(t.due_date) from debts t
+                           where t.tenant_id = d.tenant_id and t.debtor_id = d.id
+                             and t.status in ('open', 'disputed')) as oldest_due,
+                          (select count(*) from reminders r
+                           join outbox_messages m on m.tenant_id = r.tenant_id and m.id = r.message_id
+                           where r.tenant_id = d.tenant_id and r.debtor_id = d.id
+                             and m.status = 'draft') as drafts_waiting,
+                          last.status as last_status, last.at as last_at
+                   from debtors d
+                   left join lateral (
+                       select m.status, coalesce(m.sent_at, m.approved_at, m.created_at) as at
+                       from reminders r
+                       join outbox_messages m on m.tenant_id = r.tenant_id and m.id = r.message_id
+                       where r.tenant_id = d.tenant_id and r.debtor_id = d.id and m.status <> 'draft'
+                       union all
+                       select 'by_hand', s.sent_at from manual_sends s
+                       where s.tenant_id = d.tenant_id and s.debtor_id = d.id
+                       order by at desc
+                       limit 1
+                   ) last on true
+                   where d.tenant_id = $1
+               )
+               select id as "id!", business_name as "business_name!", contact_name as "contact_name!",
+                      state as "state!", promised_until, open_debts as "open_debts!", oldest_due,
+                      drafts_waiting as "drafts_waiting!", last_status, last_at
+               from summary
                order by case
-                            when d.state in ('paused', 'payment_claimed', 'needs_call', 'disputed', 'bounced')
-                              or exists (select 1 from reminders r
-                                         join outbox_messages m on m.tenant_id = r.tenant_id and m.id = r.message_id
-                                         where r.tenant_id = d.tenant_id and r.debtor_id = d.id
-                                           and m.status = 'draft') then 0
-                            when d.state = 'active' and count(t.id) filter (where t.status in ('open', 'disputed')) > 0 then 1
+                            when state in ('paused', 'payment_claimed', 'needs_call', 'disputed', 'bounced')
+                              or drafts_waiting > 0 then 0
+                            when state = 'active' and open_debts > 0 then 1
                             else 2
                         end,
-                        min(t.due_date) filter (where t.status in ('open', 'disputed')) nulls last,
-                        lower(d.business_name), d.id"#,
+                        oldest_due nulls last, lower(business_name), id"#,
             business.as_uuid(),
         )
         .fetch_all(&self.pool)
@@ -159,6 +192,11 @@ impl Debtors {
                 promised_until: row.promised_until,
                 open_debts: row.open_debts,
                 oldest_due: row.oldest_due,
+                drafts_waiting: row.drafts_waiting,
+                last_message: row
+                    .last_status
+                    .zip(row.last_at)
+                    .map(|(status, at)| LastMessage { status, at }),
             })
             .collect())
     }

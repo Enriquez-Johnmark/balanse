@@ -28,6 +28,7 @@ cargo run -- serve                   # http://127.0.0.1:3000
 3. Add a Debtor, then an invoice whose due date has passed.
 4. Draft its reminder as of a weekday: `cargo run -- dev-schedule --date YYYY-MM-DD` (a date after the due date).
 5. Approve it on the Drafts page. It is sent on a weekday between 08:00 and 20:00 Manila time; outside those hours it waits. Sent mail appears in Mailpit.
+6. Open the link in the reminder: that is the Debtor's page. Press "I've paid" with a photo, then confirm or reject the claim on the Debtor's page in the app. Set your payment instructions under Settings (it asks for a login from the last 10 minutes).
 
 ## Licence
 

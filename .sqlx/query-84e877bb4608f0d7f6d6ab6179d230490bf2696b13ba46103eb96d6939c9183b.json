@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update businesses set payment_instructions = $2 where tenant_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "84e877bb4608f0d7f6d6ab6179d230490bf2696b13ba46103eb96d6939c9183b"
+}

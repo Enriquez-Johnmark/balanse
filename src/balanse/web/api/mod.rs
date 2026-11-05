@@ -11,6 +11,7 @@ mod claims;
 mod debtors;
 mod drafts;
 mod login;
+mod settings;
 mod signup;
 
 use axum::extract::rejection::{JsonRejection, PathRejection};
@@ -25,13 +26,14 @@ use serde::de::DeserializeOwned;
 
 use super::{AppState, session_cookie};
 use crate::balanse::businesses::BusinessId;
-use crate::engine::accounts::Session;
+use crate::engine::accounts::{Role, Session};
 
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
         .merge(claims::routes())
         .merge(debtors::routes())
         .merge(drafts::routes())
+        .merge(settings::routes())
         .merge(login::routes())
         .merge(signup::routes())
         .route("/api/{*rest}", any(not_found))
@@ -173,6 +175,43 @@ impl FromRequestParts<AppState> for ApiMember {
             Ok(None) => Err(ApiError::NotLoggedIn),
             Err(err) => Err(ApiError::internal(err)),
         }
+    }
+}
+
+/// How recently the Owner must have logged in to change something that
+/// could redirect a Debtor's money, such as payment instructions (G6).
+pub const FRESH_LOGIN: time::Duration = time::Duration::minutes(10);
+
+/// The Owner, logged in within [`FRESH_LOGIN`]; anyone else is refused
+/// with "log in again" (G6).
+pub struct ApiFreshOwner(pub Session);
+
+impl FromRequestParts<AppState> for ApiFreshOwner {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+        let ApiMember(member) = ApiMember::from_request_parts(parts, state).await?;
+        let refused = |message: &str| ApiError::Refused {
+            status: StatusCode::FORBIDDEN,
+            message: message.to_owned(),
+            problems: Vec::new(),
+        };
+        if member.role != Role::Owner {
+            return Err(refused("Only the Owner can change this."));
+        }
+        let session = session_cookie(parts).ok_or(ApiError::NotLoggedIn)?;
+        let started = state
+            .logins
+            .started_at(&session)
+            .await
+            .map_err(ApiError::internal)?
+            .ok_or(ApiError::NotLoggedIn)?;
+        if state.clock.now() - started > FRESH_LOGIN {
+            return Err(refused(
+                "Log in again to change this: it can redirect your Debtors' payments, so it needs a fresh login.",
+            ));
+        }
+        Ok(Self(member))
     }
 }
 

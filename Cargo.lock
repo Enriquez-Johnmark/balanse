@@ -1489,8 +1489,8 @@ dependencies = [
 
 [[package]]
 name = "nudgewright"
-version = "0.4.0"
-source = "git+https://github.com/Enriquez-Johnmark/nudgewright?rev=4f09f082450ce9011590443b6f9887c3322164b0#4f09f082450ce9011590443b6f9887c3322164b0"
+version = "0.4.1"
+source = "git+https://github.com/Enriquez-Johnmark/nudgewright?rev=efe74dc5bfd405d1ae8c2beef73f14b6e28251a3#efe74dc5bfd405d1ae8c2beef73f14b6e28251a3"
 dependencies = [
  "base64 0.22.1",
  "calamine",

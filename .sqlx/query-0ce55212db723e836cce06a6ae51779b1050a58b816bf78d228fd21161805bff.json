@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select payment_instructions from businesses where tenant_id = $1 for update",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "payment_instructions",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "businesses",
+            "name": "payment_instructions"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0ce55212db723e836cce06a6ae51779b1050a58b816bf78d228fd21161805bff"
+}

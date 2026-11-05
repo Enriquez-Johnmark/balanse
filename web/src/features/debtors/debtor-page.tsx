@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table"
 import { AddDebtDialog } from "@/features/debtors/add-debt-dialog"
 import { ChangeAmountDialog } from "@/features/debtors/change-amount-dialog"
+import { ClaimCard } from "@/features/debtors/claim-card"
 import { OutcomeCard } from "@/features/debtors/outcome-card"
 import { useDebtor } from "@/features/debtors/queries"
 import { formatDate, formatDateTime } from "@/lib/dates"
@@ -50,6 +51,7 @@ function DebtorContent({ debtor }: { debtor: DebtorDetail }) {
   return (
     <>
       <PageHeader title={debtor.business_name} description={contact.join(" · ")} />
+      {debtor.claim ? <ClaimCard claim={debtor.claim} debtorName={debtor.business_name} /> : null}
       <OutcomeCard debtor={debtor} />
       <DebtsCard debtorId={debtor.id} debts={debtor.debts} />
       <div className="grid gap-6 lg:grid-cols-2">

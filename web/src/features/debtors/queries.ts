@@ -73,3 +73,14 @@ export function useChangeAmount(debtId: string) {
     onSuccess: refresh,
   })
 }
+
+/** G2: the Owner confirms a claim of payment (the Debts are settled) or
+ *  rejects it (reminders resume). */
+export function useAnswerClaim(claimId: string) {
+  const refresh = useRefreshDebtors()
+  return useMutation({
+    mutationFn: (answer: "confirm" | "reject") =>
+      api<void>("POST", `/api/claims/${encodeURIComponent(claimId)}/${answer}`),
+    onSuccess: refresh,
+  })
+}

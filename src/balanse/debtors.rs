@@ -132,7 +132,19 @@ impl Debtors {
                left join debts t on t.tenant_id = d.tenant_id and t.debtor_id = d.id
                where d.tenant_id = $1
                group by d.id
-               order by lower(d.business_name), d.id"#,
+               -- H1: needing action first, then active, then the rest; each
+               -- group oldest overdue first.
+               order by case
+                            when d.state in ('paused', 'payment_claimed', 'needs_call', 'disputed', 'bounced')
+                              or exists (select 1 from reminders r
+                                         join outbox_messages m on m.tenant_id = r.tenant_id and m.id = r.message_id
+                                         where r.tenant_id = d.tenant_id and r.debtor_id = d.id
+                                           and m.status = 'draft') then 0
+                            when d.state = 'active' and count(t.id) filter (where t.status in ('open', 'disputed')) > 0 then 1
+                            else 2
+                        end,
+                        min(t.due_date) filter (where t.status in ('open', 'disputed')) nulls last,
+                        lower(d.business_name), d.id"#,
             business.as_uuid(),
         )
         .fetch_all(&self.pool)

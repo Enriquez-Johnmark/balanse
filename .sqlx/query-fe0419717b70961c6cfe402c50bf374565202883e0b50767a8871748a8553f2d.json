@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select r.debtor_id, d.contact_mobile, m.status, m.to_address, m.from_name, m.reply_to, m.subject,\n                m.body_text\n         from reminders r\n         join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id\n         join debtors d on d.id = r.debtor_id and d.tenant_id = r.tenant_id\n         where r.tenant_id = $1 and m.id = $2",
+  "query": "select r.debtor_id, d.contact_mobile, a.name as business_name, m.status, m.to_address, m.from_name, m.reply_to, m.subject,\n                m.body_text\n         from reminders r\n         join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id\n         join debtors d on d.id = r.debtor_id and d.tenant_id = r.tenant_id\n         join accounts a on a.tenant_id = r.tenant_id\n         where r.tenant_id = $1 and m.id = $2",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,17 @@
       },
       {
         "ordinal": 2,
+        "name": "business_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
         "name": "status",
         "type_info": "Text",
         "origin": {
@@ -37,7 +48,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "to_address",
         "type_info": "Text",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "from_name",
         "type_info": "Text",
         "origin": {
@@ -59,7 +70,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "reply_to",
         "type_info": "Text",
         "origin": {
@@ -70,7 +81,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "subject",
         "type_info": "Text",
         "origin": {
@@ -81,7 +92,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "body_text",
         "type_info": "Text",
         "origin": {
@@ -104,10 +115,11 @@
       false,
       false,
       false,
+      false,
       true,
       false,
       false
     ]
   },
-  "hash": "dc0204d90079fab7b415240ffab4059831e20e4f67586f19efec4008e728301a"
+  "hash": "fe0419717b70961c6cfe402c50bf374565202883e0b50767a8871748a8553f2d"
 }

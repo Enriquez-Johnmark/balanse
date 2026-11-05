@@ -4,13 +4,14 @@
 //! An SMS may carry no link of any kind and no phone number (R13). The
 //! Owner may have edited the message, so the SMS text is filtered strictly:
 //! the invoice lines Balanse itself wrote are kept as they are, and every
-//! other line with anything like a link or a phone number is dropped, as is
-//! the email footer.
+//! other line with anything like a link or a phone number is dropped. The
+//! email footer is replaced by a short one that still names the Business,
+//! Balanse and who answers for the Contact's details (R9, R15).
 
-/// The SMS version of `body`: lines equal to one in `invoice_lines` are
-/// kept; the footer and any other line with a link or a phone number are
-/// dropped.
-pub fn for_sms(body: &str, invoice_lines: &[String]) -> String {
+/// The SMS version of `body` from `business`: lines equal to one in
+/// `invoice_lines` are kept; any other line with a link or a phone number
+/// is dropped, and the footer is replaced by [`sms_footer`].
+pub fn for_sms(body: &str, invoice_lines: &[String], business: &str) -> String {
     let mut kept: Vec<&str> = Vec::new();
     for line in body.lines() {
         if line.trim_end() == "--" {
@@ -36,7 +37,13 @@ pub fn for_sms(body: &str, invoice_lines: &[String]) -> String {
         text.push_str(line);
         text.push('\n');
     }
-    text.trim_end().to_owned()
+    format!("{}\n\n{}", text.trim_end(), sms_footer(business))
+}
+
+/// The footer of an SMS: no link, no "reply STOP" (a reply goes to the
+/// Owner's phone, not to Balanse).
+pub fn sms_footer(business: &str) -> String {
+    format!("Sent via Balanse on behalf of {business}, which is responsible for your details.")
 }
 
 /// A wa.me link that opens WhatsApp on `mobile` with `text` filled in, or

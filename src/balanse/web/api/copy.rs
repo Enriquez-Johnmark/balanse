@@ -51,11 +51,12 @@ async fn copy(
     ApiPath(id): ApiPath<Uuid>,
 ) -> Result<Json<CopyTexts>, ApiError> {
     let row = sqlx::query!(
-        "select r.debtor_id, d.contact_mobile, m.status, m.to_address, m.from_name, m.reply_to, m.subject,
+        "select r.debtor_id, d.contact_mobile, a.name as business_name, m.status, m.to_address, m.from_name, m.reply_to, m.subject,
                 m.body_text
          from reminders r
          join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id
          join debtors d on d.id = r.debtor_id and d.tenant_id = r.tenant_id
+         join accounts a on a.tenant_id = r.tenant_id
          where r.tenant_id = $1 and m.id = $2",
         business.as_uuid(),
         id,
@@ -93,7 +94,7 @@ async fn copy(
         .map_err(ApiError::internal)?;
     let invoice_lines: Vec<String> = debt_block(&debts).lines().map(str::to_owned).collect();
     Ok(Json(CopyTexts {
-        sms: for_sms(&body, &invoice_lines),
+        sms: for_sms(&body, &invoice_lines, &row.business_name),
         whatsapp_url: row
             .contact_mobile
             .as_deref()

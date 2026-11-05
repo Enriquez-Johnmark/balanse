@@ -35,7 +35,7 @@ fn body() -> String {
 fn h4_sms_text_has_no_link_and_no_phone_number() {
     let invoice_lines = ["- Invoice INV-0042 (15 Sep 2026): ₱12,500.00, due 15 Oct 2026".to_owned()];
 
-    let sms = for_sms(&body(), &invoice_lines);
+    let sms = for_sms(&body(), &invoice_lines, "Reyes Creative");
 
     for banned in ["http", "balanseapp.com", "reyes.ph", "0917", "123 4567"] {
         assert!(!sms.contains(banned), "{banned:?} in {sms}");
@@ -44,7 +44,12 @@ fn h4_sms_text_has_no_link_and_no_phone_number() {
         sms.contains("- Invoice INV-0042 (15 Sep 2026): ₱12,500.00, due 15 Oct 2026"),
         "{sms}"
     );
-    assert!(sms.trim_end().ends_with("Reyes Creative"), "{sms}");
+    assert!(sms.contains("\nReyes Creative\n"), "{sms}");
+    // R9, R15: who it's from, via Balanse, and who answers for their details.
+    assert!(
+        sms.ends_with("Sent via Balanse on behalf of Reyes Creative, which is responsible for your details."),
+        "{sms}"
+    );
 }
 
 #[test]

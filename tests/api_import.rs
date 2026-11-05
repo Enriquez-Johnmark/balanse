@@ -53,3 +53,27 @@ async fn b2_a_file_that_isnt_a_spreadsheet_is_refused_with_why(pool: PgPool) {
     assert_eq!(status.as_u16(), 422);
     assert!(body.contains("has no Debtor,"), "{body}");
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn b2_an_upload_cut_short_says_so_rather_than_blaming_its_size(pool: PgPool) {
+    use tower::ServiceExt;
+    let clock = clock();
+    business(&pool, &clock).await;
+    let app = app(&pool, &clock);
+    let ana = log_in(&app, &pool, "ana@reyes.test").await;
+    // A part that never ends: the connection dropped mid-upload.
+    let body = "--x\r\nContent-Disposition: form-data; name=\"file\"; filename=\"a.csv\"\r\n\r\nDebtor,Amo";
+    let request = axum::http::Request::post("/api/import")
+        .header("origin", common::BASE_URL)
+        .header("cookie", &ana)
+        .header("content-type", "multipart/form-data; boundary=x")
+        .body(axum::body::Body::from(body))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+
+    assert_eq!(response.status().as_u16(), 422);
+    let bytes = axum::body::to_bytes(response.into_body(), 1 << 16).await.unwrap();
+    let text = String::from_utf8_lossy(&bytes);
+    assert!(text.contains("didn't arrive whole"), "{text}");
+}

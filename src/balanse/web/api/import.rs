@@ -3,7 +3,9 @@
 //! Scoped by the logged-in Business (A2). Excel files are parsed by the
 //! engine in a sandboxed child process.
 
+use axum::extract::multipart::MultipartError;
 use axum::extract::{DefaultBodyLimit, Multipart, State};
+use axum::http::StatusCode;
 use axum::http::header;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
@@ -54,18 +56,9 @@ async fn import(
     mut multipart: Multipart,
 ) -> Result<Json<ImportResult>, ApiError> {
     let mut file = None;
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|_| ApiError::invalid("The file is larger than 2 MB."))?
-    {
+    while let Some(field) = multipart.next_field().await.map_err(upload_error)? {
         if field.name() == Some("file") {
-            file = Some(
-                field
-                    .bytes()
-                    .await
-                    .map_err(|_| ApiError::invalid("The file is larger than 2 MB."))?,
-            );
+            file = Some(field.bytes().await.map_err(upload_error)?);
         }
     }
     let bytes = file.ok_or_else(|| ApiError::invalid("Choose a CSV or Excel file."))?;
@@ -120,6 +113,15 @@ async fn template(ApiBusiness(_): ApiBusiness) -> impl IntoResponse {
         ],
         format!("{}\n{example}\n", COLUMNS.join(",")),
     )
+}
+
+/// Too large, or cut short on the way.
+fn upload_error(err: MultipartError) -> ApiError {
+    if err.status() == StatusCode::PAYLOAD_TOO_LARGE {
+        ApiError::invalid("The file is larger than 2 MB.")
+    } else {
+        ApiError::invalid("The file didn't arrive whole; try again.")
+    }
 }
 
 fn capitalised(text: &str) -> String {

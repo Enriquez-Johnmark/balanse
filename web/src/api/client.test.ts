@@ -25,6 +25,18 @@ describe("api", () => {
     })
   })
 
+  it("sends a file form as is, letting the browser set its type", async () => {
+    answer(200, {})
+    const form = new FormData()
+    await api("POST", "/api/import", form)
+    expect(fetch).toHaveBeenCalledWith("/api/import", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: undefined,
+      body: form,
+    })
+  })
+
   it("accepts a success with no body, such as 201 Created", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 201 })))
     await expect(

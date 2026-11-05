@@ -40,6 +40,12 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: "debtors/import",
+        lazy: async () => ({
+          Component: (await import("@/features/import/import-page")).ImportPage,
+        }),
+      },
+      {
         path: "debtors/:id",
         lazy: async () => ({
           Component: (await import("@/features/debtors/debtor-page")).DebtorPage,

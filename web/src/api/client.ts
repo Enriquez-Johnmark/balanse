@@ -22,14 +22,16 @@ type Method = "GET" | "POST" | "PUT" | "DELETE"
 
 /**
  * Calls the Rust API. Every request in the app goes through here: it sends
- * the session cookie and JSON, and turns any failure into an ApiError.
+ * the session cookie and JSON (or a file form as is), and turns any failure
+ * into an ApiError.
  */
 export async function api<T>(method: Method, path: string, body?: unknown): Promise<T> {
+  const asJson = body !== undefined && !(body instanceof FormData)
   const response = await fetch(path, {
     method,
     credentials: "same-origin",
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: asJson ? { "Content-Type": "application/json" } : undefined,
+    body: asJson ? JSON.stringify(body) : (body as FormData | undefined),
   })
   if (!response.ok) throw new ApiError(response.status, await errorBody(response))
   // 201, 202 and 204 answers may have no body at all.

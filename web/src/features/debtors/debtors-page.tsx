@@ -1,4 +1,4 @@
-import { UserPlusIcon } from "lucide-react"
+import { FileUpIcon, UserPlusIcon } from "lucide-react"
 import { Link } from "react-router"
 
 import type { DebtorRow } from "@/api/generated/DebtorRow"
@@ -35,6 +35,10 @@ export function DebtorsPage() {
         title="Debtors"
         description="Clients who owe you, and where their reminders stand."
       >
+        <Button variant="outline" render={<Link to="/debtors/import" />} nativeButton={false}>
+          <FileUpIcon data-icon="inline-start" />
+          Import a spreadsheet
+        </Button>
         <Button render={<Link to="/debtors/new" />} nativeButton={false}>
           <UserPlusIcon data-icon="inline-start" />
           Add a Debtor

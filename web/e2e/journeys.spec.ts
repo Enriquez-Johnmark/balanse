@@ -135,3 +135,26 @@ test("g2 a Contact says they've paid with proof, and the Owner confirms it", asy
   await page.getByRole("button", { name: "Confirm payment" }).last().click()
   await expect(page.getByRole("cell", { name: "Paid" })).toBeVisible()
 })
+
+test("b2 a spreadsheet adds its valid rows and lists why the others weren't", async ({ page }) => {
+  await page.goto("/")
+  await page.getByRole("button", { name: "Import a spreadsheet" }).click()
+  const csv = [
+    "Debtor,Contact name,Contact email,Contact mobile,Language,Invoice number,Invoice date,Amount,Due date,Note",
+    `Lazaro Studio ${run},Mila,mila@lazaro.test,,english,INV-21,2026-10-01,"₱8,000.00",2026-10-31,`,
+    `Lazaro Studio ${run},Mila,mila@lazaro.test,,english,INV-22,2026-10-01,lots,2026-10-31,`,
+  ].join("\n")
+  await page.getByLabel("Spreadsheet").setInputFiles({
+    name: "debts.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv),
+  })
+  await page.getByRole("button", { name: "Import", exact: true }).click()
+  const result = page.getByRole("region", { name: "Import result" })
+  await expect(result.getByText("Added 1 invoice for 1 new Debtor")).toBeVisible()
+  await expect(result.getByRole("cell", { name: "3", exact: true })).toBeVisible()
+  await expect(result.getByRole("cell", { name: /^Amount/ })).toBeVisible()
+
+  await result.getByRole("link", { name: "See your Debtors" }).click()
+  await expect(page.getByRole("link", { name: `Lazaro Studio ${run}` })).toBeVisible()
+})

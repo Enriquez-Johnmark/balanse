@@ -66,8 +66,21 @@ impl ContactActions {
             .await?
             .ok_or(ActionError::NotFound)?;
         let now = self.clock.now();
-        let id = ClaimId::new();
         let mut tx = self.pool.begin().await?;
+        lock_state(&mut tx, business, debtor).await?;
+        // Pressed again, or on another device: the open claim stands.
+        if let Some(open) = sqlx::query_scalar!(
+            "select id from claims where tenant_id = $1 and debtor_id = $2 and settled_at is null
+             order by claimed_at desc limit 1",
+            business.as_uuid(),
+            debtor.as_uuid(),
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        {
+            return Ok(open.into());
+        }
+        let id = ClaimId::new();
         sqlx::query!(
             "insert into claims (id, tenant_id, debtor_id, claimed_at) values ($1, $2, $3, $4)",
             id.as_uuid(),
@@ -77,10 +90,11 @@ impl ContactActions {
         )
         .execute(&mut *tx)
         .await?;
-        // A stop or a bounce stays as it is; anything else is now a claim.
+        // A stop, a bounce or a dispute stays as it is (G3, G4); anything
+        // else is now a claim.
         sqlx::query!(
             "update debtors set state = 'payment_claimed', promised_until = null, updated_at = $3
-             where tenant_id = $1 and id = $2 and state not in ('opted_out', 'bounced')",
+             where tenant_id = $1 and id = $2 and state not in ('opted_out', 'bounced', 'disputed')",
             business.as_uuid(),
             debtor.as_uuid(),
             now,
@@ -125,6 +139,9 @@ impl ContactActions {
             .ok_or(ActionError::NotFound)?;
         let now = self.clock.now();
         let mut tx = self.pool.begin().await?;
+        if lock_state(&mut tx, business, debtor).await? == "disputed" {
+            return Ok(());
+        }
         sqlx::query!(
             "update debts set status = 'disputed', updated_at = $3
              where tenant_id = $1 and debtor_id = $2 and status in ('open', 'payment_claimed')",
@@ -185,6 +202,9 @@ impl ContactActions {
             .ok_or(ActionError::NotFound)?;
         let now = self.clock.now();
         let mut tx = self.pool.begin().await?;
+        if lock_state(&mut tx, business, debtor).await? == "opted_out" {
+            return Ok(());
+        }
         sqlx::query!(
             "update debtors set state = 'opted_out', promised_until = null, updated_at = $3
              where tenant_id = $1 and id = $2",
@@ -230,4 +250,21 @@ impl ContactActions {
         approve_notice(&self.outbox, &checks, business, notice).await?;
         Ok(())
     }
+}
+
+/// Locks `debtor`'s row for the rest of `tx`, so two presses can't both
+/// act, and returns its state.
+async fn lock_state(
+    tx: &mut sqlx::PgConnection,
+    business: BusinessId,
+    debtor: DebtorId,
+) -> Result<String, ActionError> {
+    sqlx::query_scalar!(
+        "select state from debtors where tenant_id = $1 and id = $2 for update",
+        business.as_uuid(),
+        debtor.as_uuid(),
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or(ActionError::NotFound)
 }

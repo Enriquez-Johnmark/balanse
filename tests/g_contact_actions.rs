@@ -169,3 +169,40 @@ async fn g4_stop_emailing_me_stops_email_for_good(pool: PgPool) {
         "no new reminder is drafted"
     );
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g2_pressing_the_same_button_again_changes_nothing_and_tells_the_owner_once(pool: PgPool) {
+    let world = world(&pool).await;
+    let actions = world.actions(&pool);
+
+    let first = actions.claim_paid(world.business, world.debtor).await.unwrap();
+    let second = actions.claim_paid(world.business, world.debtor).await.unwrap();
+    actions.stop(world.business, world.debtor).await.unwrap();
+    actions.stop(world.business, world.debtor).await.unwrap();
+
+    assert_eq!(first, second, "the open claim is reused");
+    let claims: i64 = sqlx::query_scalar("select count(*) from claims")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let notices: i64 = sqlx::query_scalar("select count(*) from outbox_messages where to_address = 'ana@reyes.test'")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!((claims, notices), (1, 2), "one claim notice, one stop notice");
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn g3_a_claim_after_a_dispute_keeps_the_dispute(pool: PgPool) {
+    let world = world(&pool).await;
+    let actions = world.actions(&pool);
+    actions.dispute(world.business, world.debtor).await.unwrap();
+
+    let claim = actions.claim_paid(world.business, world.debtor).await.unwrap();
+    balanse::balanse::claims::Claims::new(pool.clone(), world.clock.clone(), None)
+        .reject(world.business, claim, "ana@reyes.test")
+        .await
+        .unwrap();
+
+    assert_eq!(state(&pool, world.debtor).await, "disputed", "reminders stay stopped");
+}

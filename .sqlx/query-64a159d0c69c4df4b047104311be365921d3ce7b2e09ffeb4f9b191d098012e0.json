@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update debtors set state = 'payment_claimed', promised_until = null, updated_at = $3\n             where tenant_id = $1 and id = $2 and state not in ('opted_out', 'bounced', 'disputed')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "64a159d0c69c4df4b047104311be365921d3ce7b2e09ffeb4f9b191d098012e0"
+}

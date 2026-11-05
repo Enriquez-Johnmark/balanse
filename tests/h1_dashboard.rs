@@ -10,6 +10,7 @@ use std::sync::Arc;
 use balanse::balanse::businesses::BusinessId;
 use balanse::balanse::debtors::{DebtorId, DebtorInput, Debtors};
 use balanse::balanse::debts::{DebtInput, Debts};
+use balanse::balanse::reminders::log_manual_send;
 use balanse::engine::clock::FixedClock;
 use common::{business, clock, scheduler};
 use sqlx::PgPool;
@@ -107,15 +108,10 @@ async fn h1_each_row_shows_drafts_waiting_and_the_last_message(pool: PgPool) {
     clock.advance(Duration::hours(22));
     scheduler(&pool, &clock).run().await.unwrap();
     let before = Debtors::new(pool.clone(), clock.clone()).list(business).await.unwrap();
-    sqlx::query(
-        "insert into manual_sends (id, tenant_id, debtor_id, sent_at, logged_by, created_at)
-         values (gen_random_uuid(), $1, $2, '2026-11-03 02:00Z', 'ana@reyes.test', now())",
-    )
-    .bind(business.as_uuid())
-    .bind(debtor.as_uuid())
-    .execute(&pool)
-    .await
-    .unwrap();
+    let sent_at = time::macros::datetime!(2026-11-03 02:00 UTC);
+    log_manual_send(&pool, business, debtor, sent_at, "ana@reyes.test", sent_at)
+        .await
+        .unwrap();
 
     let after = Debtors::new(pool.clone(), clock.clone()).list(business).await.unwrap();
 

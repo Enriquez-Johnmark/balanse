@@ -8,6 +8,7 @@
 //! - Errors are JSON ([`ErrorBody`]) without internal details.
 
 mod claims;
+mod copy;
 mod debtors;
 mod drafts;
 mod import;
@@ -33,6 +34,7 @@ pub(super) fn routes() -> Router<AppState> {
     Router::new()
         .merge(claims::routes())
         .merge(debtors::routes())
+        .merge(copy::routes())
         .merge(drafts::routes())
         .merge(import::routes())
         .merge(settings::routes())

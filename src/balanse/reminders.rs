@@ -17,6 +17,7 @@ use std::sync::Arc;
 use sqlx::PgPool;
 use time::macros::{offset, time};
 use time::{Date, Duration, OffsetDateTime, Time, UtcOffset};
+use uuid::Uuid;
 
 use super::businesses::BusinessId;
 use super::debtor_links::DebtorLinks;
@@ -392,6 +393,31 @@ pub async fn open_debts(pool: &PgPool, business: BusinessId, debtor: DebtorId) -
             disputed: row.status == "disputed",
         })
         .collect())
+}
+
+/// Records that the Owner sent `debtor` a message by hand at `sent_at`
+/// ("I sent it on …"); it counts toward the cap like any other (C4, H4).
+pub async fn log_manual_send(
+    pool: &PgPool,
+    business: BusinessId,
+    debtor: DebtorId,
+    sent_at: OffsetDateTime,
+    logged_by: &str,
+    now: OffsetDateTime,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "insert into manual_sends (id, tenant_id, debtor_id, sent_at, logged_by, created_at)
+         values ($1, $2, $3, $4, $5, $6)",
+        Uuid::now_v7(),
+        business.as_uuid(),
+        debtor.as_uuid(),
+        sent_at,
+        logged_by,
+        now,
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 /// The Manila dates of every message to `debtor` in the 7 days before

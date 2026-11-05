@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id from debtors where tenant_id = $1 and lower(business_name) = lower($2)\n             and lower(contact_email) = lower($3) order by created_at limit 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9a47f81b42621f49ce15fd2a5d9a96f6e0e7da2b43fbdf46bb81acc63999ce76"
+}

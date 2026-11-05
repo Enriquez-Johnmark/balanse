@@ -30,6 +30,8 @@ cargo run -- serve                   # http://127.0.0.1:3000
 5. Approve it on the Drafts page. It is sent on a weekday between 08:00 and 20:00 Manila time; outside those hours it waits. Sent mail appears in Mailpit.
 6. Optional: put an `ANTHROPIC_API_KEY` in `.env` (an API key, never a Claude subscription) and run step 4 again: the model writes the wording, Balanse inserts the facts, and anything it gets wrong falls back to the template.
 7. Open the link in the reminder: that is the Debtor's page. Press "I've paid" with a photo, then confirm or reject the claim on the Debtor's page in the app. Set your payment instructions under Settings (it asks for a login from the last 10 minutes).
+8. On the Debtors page, choose "Import a spreadsheet", download the template, fill in a few rows (make one amount "lots" to see a row refused with its reason) and import it. Debtors needing your action are listed first, then active ones oldest overdue first.
+9. On a Draft, open "Copy and open": copy it for Viber or Messenger, open WhatsApp (needs the Contact's mobile number), or copy the SMS version, which has no link and no phone number. On the Debtor's page, "I sent one myself" records a message you sent that way, so the next email waits.
 
 ## Licence
 

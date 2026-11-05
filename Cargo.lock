@@ -310,9 +310,9 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "calamine"
-version = "0.37.0"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9ca341b94bc4b29e08970b1a03914fad2dfe177e2ecb67fcd6de9046004aafb"
+checksum = "f431b67cba6122a1f7d26b7adafc71bbdf07026095fe811f5efc025d8748e1d8"
 dependencies = [
  "atoi_simd",
  "byteorder",
@@ -1489,8 +1489,8 @@ dependencies = [
 
 [[package]]
 name = "nudgewright"
-version = "0.4.1"
-source = "git+https://github.com/Enriquez-Johnmark/nudgewright?rev=efe74dc5bfd405d1ae8c2beef73f14b6e28251a3#efe74dc5bfd405d1ae8c2beef73f14b6e28251a3"
+version = "0.4.2"
+source = "git+https://github.com/Enriquez-Johnmark/nudgewright?rev=b8184012f205de606256b846efa7b97ee1a670ad#b8184012f205de606256b846efa7b97ee1a670ad"
 dependencies = [
  "base64 0.22.1",
  "calamine",

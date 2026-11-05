@@ -121,8 +121,9 @@ function DebtsCard({ debtorId, debts }: { debtorId: string; debts: DebtRow[] }) 
   )
 }
 
-/** Messages that can still go out, or went out, can be copied (H4). */
-const copyable = new Set(["draft", "approved", "sending", "sent"])
+/** Drafts and approved reminders can be copied (H4); the API checks them
+ *  as it would before sending. */
+const copyable = new Set(["draft", "approved"])
 
 function RemindersCard({ debtorId, reminders }: { debtorId: string; reminders: ReminderRow[] }) {
   return (

@@ -15,8 +15,9 @@ import {
 import { toast } from "@/components/ui/toast"
 
 /** H4: a message's text for Viber, Messenger, WhatsApp or SMS. Copying
- *  approves and sends nothing; the texts come from the API, which keeps
- *  links and phone numbers out of the SMS version. */
+ *  approves and sends nothing; the texts come from the API, which refuses
+ *  what it wouldn't send and keeps links and phone numbers out of the SMS
+ *  version. */
 export function CopyMenu({ messageId }: { messageId: string }) {
   const [isOpen, setIsOpen] = useState(false)
   // Fetched when the menu opens, so a click can copy at once: browsers
@@ -42,6 +43,11 @@ export function CopyMenu({ messageId }: { messageId: string }) {
         Copy and open
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
+        {texts.isError ? (
+          <p role="alert" className="max-w-72 px-1.5 py-1 text-sm text-destructive">
+            {texts.error.message}
+          </p>
+        ) : null}
         <DropdownMenuItem
           disabled={!texts.data}
           onClick={() => texts.data && copy(texts.data.text, "Viber or Messenger")}

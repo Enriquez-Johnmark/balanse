@@ -137,3 +137,40 @@ async fn a2_another_business_cant_copy_or_log_for_a_debtor(pool: PgPool) {
 
     assert_eq!((copy.status.as_u16(), logged.status.as_u16()), (404, 404));
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn h4_a_draft_balanse_wouldnt_send_cant_be_copied(pool: PgPool) {
+    let clock = clock();
+    let (app, cookie, debtor) = debtor(&pool, &clock).await;
+    common::scheduler(&pool, &clock).run().await.unwrap();
+    let draft = drafts(&app, &cookie).await[0].clone();
+    let id = draft["id"].as_str().unwrap();
+    let threat = draft["body"]
+        .as_str()
+        .unwrap()
+        .replace("Hi Lito,", "Hi Lito, makukulong ka kung hindi ka magbayad.");
+    call(
+        &app,
+        "PUT",
+        &format!("/api/drafts/{id}"),
+        Some(json!({ "subject": draft["subject"], "body": threat })),
+        Some(&cookie),
+    )
+    .await;
+
+    let threatening = call(&app, "GET", &format!("/api/messages/{id}/copy"), None, Some(&cookie)).await;
+    sqlx::query("update debtors set state = 'opted_out' where id = $1::uuid")
+        .bind(&debtor)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let opted_out = call(&app, "GET", &format!("/api/messages/{id}/copy"), None, Some(&cookie)).await;
+
+    assert_eq!(threatening.status.as_u16(), 409, "{}", threatening.body);
+    assert!(
+        threatening.body["message"].as_str().unwrap().contains("arrest"),
+        "{}",
+        threatening.body
+    );
+    assert_eq!(opted_out.status.as_u16(), 409, "{}", opted_out.body);
+}

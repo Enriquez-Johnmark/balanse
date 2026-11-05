@@ -1,6 +1,9 @@
 //! Copy and open (H4): a message's texts for Viber, Messenger, WhatsApp
 //! and SMS, and "I sent it on …". Reading the texts changes nothing; only
-//! the outbox approves or sends. Scoped by the logged-in Business (A2).
+//! the outbox approves or sends. Only a Draft or approved reminder that
+//! still passes the checks at approval is given out, so nothing Balanse
+//! wouldn't send by email (a threat, a Debtor who asked to stop) can be
+//! copied either. Scoped by the logged-in Business (A2).
 
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -14,9 +17,12 @@ use uuid::Uuid;
 use super::{ApiBusiness, ApiError, ApiJson, ApiMember, ApiPath};
 use crate::balanse::copy::{for_sms, whatsapp_link};
 use crate::balanse::debtors::DebtorError;
+use crate::balanse::presend::BalanseChecks;
 use crate::balanse::reminders::{MANILA, log_manual_send, open_debts};
 use crate::balanse::web::AppState;
 use crate::balanse::wording::debt_block;
+use crate::engine::mail::Email;
+use crate::engine::outbox::{CheckFailed, PreSendCheck};
 
 /// How far back a message sent by hand may be logged.
 const LOG_BACK: Duration = Duration::days(30);
@@ -45,7 +51,8 @@ async fn copy(
     ApiPath(id): ApiPath<Uuid>,
 ) -> Result<Json<CopyTexts>, ApiError> {
     let row = sqlx::query!(
-        "select r.debtor_id, d.contact_mobile, m.body_text
+        "select r.debtor_id, d.contact_mobile, m.status, m.to_address, m.from_name, m.reply_to, m.subject,
+                m.body_text
          from reminders r
          join outbox_messages m on m.id = r.message_id and m.tenant_id = r.tenant_id
          join debtors d on d.id = r.debtor_id and d.tenant_id = r.tenant_id
@@ -57,17 +64,41 @@ async fn copy(
     .await
     .map_err(ApiError::internal)?
     .ok_or(ApiError::NotFound)?;
+    let refused = |reason: &str| ApiError::Refused {
+        status: StatusCode::CONFLICT,
+        message: format!("This message can't be copied: {reason}."),
+        problems: Vec::new(),
+    };
+    if !matches!(row.status.as_str(), "draft" | "approved") {
+        return Err(refused("only drafts and approved reminders can be"));
+    }
+    let email = Email {
+        to_address: row.to_address,
+        from_name: row.from_name,
+        reply_to: row.reply_to,
+        subject: row.subject,
+        body_text: row.body_text,
+    };
+    BalanseChecks::for_approval(state.pool.clone(), state.links.clone())
+        .check(business, id.into(), &email)
+        .await
+        .map_err(|failed| match failed {
+            CheckFailed::Refused(reason) => refused(&reason),
+            // Unavailable, or a time check, which approval's rules don't run.
+            other => ApiError::internal(format!("{other:?}")),
+        })?;
+    let body = email.body_text;
     let debts = open_debts(&state.pool, business, row.debtor_id.into())
         .await
         .map_err(ApiError::internal)?;
     let invoice_lines: Vec<String> = debt_block(&debts).lines().map(str::to_owned).collect();
     Ok(Json(CopyTexts {
-        sms: for_sms(&row.body_text, &invoice_lines),
+        sms: for_sms(&body, &invoice_lines),
         whatsapp_url: row
             .contact_mobile
             .as_deref()
-            .and_then(|mobile| whatsapp_link(mobile, &row.body_text)),
-        text: row.body_text,
+            .and_then(|mobile| whatsapp_link(mobile, &body)),
+        text: body,
     }))
 }
 

@@ -59,6 +59,8 @@ pub struct AppState {
     actions: ContactActions,
     /// Proof-of-payment files, when file storage is set up.
     proofs: Option<Proofs>,
+    /// Bounds how many proof uploads are read at once, each held in memory.
+    upload_slots: Arc<tokio::sync::Semaphore>,
     claims: Claims,
     /// Where links in emails point, e.g. `https://app.balanseapp.com`.
     base_url: String,
@@ -106,6 +108,7 @@ impl AppState {
             wake_sender: Arc::new(Notify::new()),
             inbound: None,
             proofs: None,
+            upload_slots: Arc::new(tokio::sync::Semaphore::new(debtor_page::UPLOAD_SLOTS)),
             claims: Claims::new(pool.clone(), clock.clone(), None),
             web_dir: None,
             pool,

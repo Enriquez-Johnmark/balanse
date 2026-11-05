@@ -25,6 +25,10 @@ use crate::balanse::debtors::DebtorError;
 use crate::balanse::proofs::{MAX_FILE_BYTES, MAX_FILES_PER_CLAIM, ProofError};
 use crate::balanse::reminders::open_debts;
 
+/// How many proof uploads are read at once; each may hold up to 30 MB in
+/// memory while it is checked.
+pub const UPLOAD_SLOTS: usize = 4;
+
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
         .route("/d/{token}", get(page))
@@ -289,6 +293,8 @@ async fn paid(
     multipart: Option<Multipart>,
 ) -> Result<Response, PageError> {
     let link = state.links.open(&token).await?;
+    // The link is checked before taking a slot, so bad links can't take one.
+    let _slot = state.upload_slots.acquire().await.map_err(PageError::internal)?;
     let files = match multipart {
         Some(multipart) => match read_files(multipart).await {
             Ok(files) => files,

@@ -1,10 +1,21 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select from_address, subject, body_text, automatic, received_at\n             from replies where tenant_id = $1 and debtor_id = $2 order by received_at, id",
+  "query": "select debtor_id, from_address, subject, body_text, automatic, received_at\n             from replies where tenant_id = $1 order by received_at, id",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
+        "name": "debtor_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "replies",
+            "name": "debtor_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
         "name": "from_address",
         "type_info": "Text",
         "origin": {
@@ -15,7 +26,7 @@
         }
       },
       {
-        "ordinal": 1,
+        "ordinal": 2,
         "name": "subject",
         "type_info": "Text",
         "origin": {
@@ -26,7 +37,7 @@
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "body_text",
         "type_info": "Text",
         "origin": {
@@ -37,7 +48,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "automatic",
         "type_info": "Bool",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "received_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -61,11 +72,11 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid",
         "Uuid"
       ]
     },
     "nullable": [
+      false,
       false,
       false,
       true,
@@ -73,5 +84,5 @@
       false
     ]
   },
-  "hash": "e22e4a1350651a7476406a10aefdea0b4adf494f8f60489ab5ef1d9f97a33043"
+  "hash": "2c7f168bad0992ad2d3aa6d1192d3bbf36a44276906ba416202d164e1668fe67"
 }

@@ -1,10 +1,21 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select invoice_number, invoice_date, amount, due_date, note, status, created_at, closed_at\n             from debts where tenant_id = $1 and debtor_id = $2 order by created_at, id",
+  "query": "select debtor_id, invoice_number, invoice_date, amount, due_date, note, status, created_at, closed_at\n             from debts where tenant_id = $1 order by created_at, id",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
+        "name": "debtor_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "debtor_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
         "name": "invoice_number",
         "type_info": "Text",
         "origin": {
@@ -15,7 +26,7 @@
         }
       },
       {
-        "ordinal": 1,
+        "ordinal": 2,
         "name": "invoice_date",
         "type_info": "Date",
         "origin": {
@@ -26,7 +37,7 @@
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "amount",
         "type_info": "Text",
         "origin": {
@@ -37,7 +48,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "due_date",
         "type_info": "Date",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "note",
         "type_info": "Text",
         "origin": {
@@ -59,7 +70,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "status",
         "type_info": "Text",
         "origin": {
@@ -70,7 +81,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -81,7 +92,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "closed_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -94,11 +105,11 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid",
         "Uuid"
       ]
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -109,5 +120,5 @@
       true
     ]
   },
-  "hash": "474d8b74471357c9f834509ada6323139b4c5a059b09228bfb183d9784ce970d"
+  "hash": "b81229a3e55a6a55748604cc007d19f8fb776a291ad75ade81c2d46b57cb266a"
 }

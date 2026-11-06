@@ -4,7 +4,8 @@
 //! (H2, R10–R11).
 
 use axum::extract::State;
-use axum::http::StatusCode;
+use axum::http::{StatusCode, header};
+use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,9 @@ use uuid::Uuid;
 use super::{ApiBusiness, ApiError, ApiJson, ApiMember, ApiPath};
 use crate::balanse::debtors::{DebtorError, DebtorInput};
 use crate::balanse::debts::{DebtError, DebtInput, parse_date};
+use crate::balanse::evidence::{Evidence, EvidenceError, to_csv};
 use crate::balanse::outcomes::OutcomeError;
+use crate::balanse::reminders::MANILA;
 use crate::balanse::web::AppState;
 
 pub(super) fn routes() -> Router<AppState> {
@@ -22,6 +25,7 @@ pub(super) fn routes() -> Router<AppState> {
         .route("/api/debtors", get(list).post(create))
         .route("/api/debtors/{id}", get(page).put(update))
         .route("/api/debtors/{id}/debts", post(add_debt))
+        .route("/api/debtors/{id}/evidence-log", get(evidence_log))
         .route("/api/debtors/{id}/outcome", post(outcome))
         .route("/api/debts/{id}/amount", post(change_amount))
 }
@@ -139,6 +143,32 @@ async fn update(
         .await
         .map_err(debtor_error)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// H3: the Debtor's evidence log, as a CSV file to keep.
+async fn evidence_log(
+    State(state): State<AppState>,
+    ApiBusiness(business): ApiBusiness,
+    ApiPath(id): ApiPath<Uuid>,
+) -> Result<impl IntoResponse, ApiError> {
+    let log = Evidence::new(state.pool.clone())
+        .for_debtor(business, id.into())
+        .await
+        .map_err(|err| match err {
+            EvidenceError::NotFound => ApiError::NotFound,
+            EvidenceError::Database(err) => ApiError::internal(err),
+        })?;
+    let today = state.clock.now().to_offset(MANILA).date();
+    Ok((
+        [
+            (header::CONTENT_TYPE, "text/csv; charset=utf-8".to_owned()),
+            (
+                header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"balanse-evidence-log-{today}.csv\""),
+            ),
+        ],
+        to_csv(&log),
+    ))
 }
 
 /// One Debtor's page: its Contact, its Debts, its recent reminders and

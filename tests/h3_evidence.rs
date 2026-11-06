@@ -75,3 +75,49 @@ fn h3_the_exported_log_is_csv_with_formulas_defused() {
         "When (Manila time),What,By,Details\n2026-11-05 07:30,Reminder approved,ana@reyes.test,\"'=HYPERLINK(\"\"http://evil.test\"\")\"\n"
     );
 }
+
+/// `GET path` with `cookie`: the status, the content-disposition header and
+/// the body.
+async fn download(app: &axum::Router, path: &str, cookie: &str) -> (u16, String, String) {
+    use tower::ServiceExt;
+    let request = axum::http::Request::get(path)
+        .header("cookie", cookie)
+        .body(axum::body::Body::empty())
+        .unwrap();
+    let response = app.clone().oneshot(request).await.unwrap();
+    let status = response.status().as_u16();
+    let disposition = response
+        .headers()
+        .get("content-disposition")
+        .map(|value| value.to_str().unwrap().to_owned())
+        .unwrap_or_default();
+    let bytes = axum::body::to_bytes(response.into_body(), 1 << 20).await.unwrap();
+    (status, disposition, String::from_utf8(bytes.to_vec()).unwrap())
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn h3_the_owner_downloads_a_debtors_evidence_log(pool: PgPool) {
+    let clock = clock();
+    let (_, debtor) = sent(&pool, &clock).await;
+    let app = common::app(&pool, &clock);
+    let ana = common::log_in(&app, &pool, "ana@reyes.test").await;
+    balanse::balanse::businesses::create_business(&pool, clock.as_ref(), "Other Studio", "cara@other.test")
+        .await
+        .unwrap();
+    let cara = common::log_in(&app, &pool, "cara@other.test").await;
+    let path = format!("/api/debtors/{}/evidence-log", debtor.as_uuid());
+
+    let (status, disposition, body) = download(&app, &path, &ana).await;
+    let (other, _, _) = download(&app, &path, &cara).await;
+
+    assert_eq!(status, 200);
+    assert!(
+        disposition.starts_with("attachment;") && disposition.contains("evidence-log"),
+        "{disposition}"
+    );
+    assert!(
+        body.starts_with("When (Manila time),What,By,Details\n") && body.contains("Reminder sent"),
+        "{body}"
+    );
+    assert_eq!(other, 404, "another Business can't download it (A2)");
+}

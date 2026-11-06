@@ -1,3 +1,4 @@
+import { DownloadIcon } from "lucide-react"
 import { useParams } from "react-router"
 
 import { ApiError } from "@/api/client"
@@ -10,6 +11,7 @@ import { NotFoundPage } from "@/app/not-found-page"
 import { PageHeader } from "@/components/page-header"
 import { QueryError } from "@/components/query-error"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -56,6 +58,17 @@ function DebtorContent({ debtor }: { debtor: DebtorDetail }) {
     <>
       <PageHeader title={debtor.business_name} description={contact.join(" · ")}>
         <EditDebtorDialog debtor={debtor} />
+        {/* H3: everything sent and seen, as a CSV file to keep. */}
+        <Button
+          variant="outline"
+          render={
+            <a href={`/api/debtors/${encodeURIComponent(debtor.id)}/evidence-log`} download />
+          }
+          nativeButton={false}
+        >
+          <DownloadIcon data-icon="inline-start" />
+          Export evidence log
+        </Button>
       </PageHeader>
       {debtor.bounces.length > 0 ? <BouncesCard bounces={debtor.bounces} /> : null}
       {debtor.claim ? <ClaimCard claim={debtor.claim} debtorName={debtor.business_name} /> : null}

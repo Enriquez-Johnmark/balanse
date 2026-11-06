@@ -13,6 +13,7 @@ use balanse::balanse::presend::BalanseChecks;
 use balanse::balanse::proofs::Proofs;
 use balanse::balanse::reminders::{MANILA, ReplyAddresses, Scheduler};
 use balanse::balanse::replies::Replies;
+use balanse::balanse::retention::{Retention, Swept};
 use balanse::balanse::signups::approve_signup;
 use balanse::balanse::web::{AppState, router};
 use balanse::config::{Config, MailConfig};
@@ -262,10 +263,16 @@ async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> an
         &pool,
         &clock,
     )?;
+    let retention = Retention::new(pool.clone(), clock.clone());
     tokio::spawn(async move {
         loop {
             if let Err(err) = scheduler.run().await {
                 tracing::error!(%err, "drafting reminders failed");
+            }
+            match retention.sweep().await {
+                Ok(swept) if swept != Swept::default() => tracing::info!(?swept, "data past its time deleted"),
+                Ok(_) => {}
+                Err(err) => tracing::error!(%err, "deleting data past its time failed"),
             }
             match files.sweep().await {
                 Ok(0) => {}

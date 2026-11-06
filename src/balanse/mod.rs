@@ -19,6 +19,7 @@ pub mod presend;
 pub mod proofs;
 pub mod reminders;
 pub mod replies;
+pub mod retention;
 pub mod schedule;
 pub mod signups;
 pub mod web;

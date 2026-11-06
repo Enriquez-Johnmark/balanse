@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update replies set subject = '', body_text = null\n             where received_at <= $1 and (body_text is not null or subject <> '')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "898b12d9c328d96fc901ca6590d5c3845c45ae80fe9e44abfd7385b647874c6c"
+}

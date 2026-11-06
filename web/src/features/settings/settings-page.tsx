@@ -1,12 +1,8 @@
-import { useMutation } from "@tanstack/react-query"
 import { useState } from "react"
 
-import { api, ApiError } from "@/api/client"
 import type { Settings } from "@/api/generated/Settings"
 import { PageHeader } from "@/components/page-header"
 import { QueryError } from "@/components/query-error"
-import { SaveError } from "@/components/save-error"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
@@ -14,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
+import { ActionError } from "@/features/settings/action-error"
 import { useSaveInstructions, useSettings } from "@/features/settings/queries"
 
 export function SettingsPage() {
@@ -33,11 +30,6 @@ export function SettingsPage() {
 function InstructionsCard({ settings }: { settings: Settings }) {
   const [text, setText] = useState(settings.payment_instructions)
   const save = useSaveInstructions()
-  const needsLogin = save.error instanceof ApiError && save.error.status === 403
-  const logOutToLogIn = useMutation({
-    mutationFn: () => api("POST", "/api/logout"),
-    onSettled: () => location.assign("/login"),
-  })
   return (
     <Card>
       <CardHeader>
@@ -62,24 +54,7 @@ function InstructionsCard({ settings }: { settings: Settings }) {
             Your own account details only. Up to 1,000 characters.
           </FieldDescription>
         </Field>
-        {needsLogin ? (
-          <Alert variant="warning">
-            <AlertTitle>Log in again to save this</AlertTitle>
-            <AlertDescription className="flex flex-col items-start gap-2">
-              <span>{save.error?.message}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => logOutToLogIn.mutate()}
-                disabled={logOutToLogIn.isPending}
-              >
-                Log in again
-              </Button>
-            </AlertDescription>
-          </Alert>
-        ) : save.isError ? (
-          <SaveError error={save.error} />
-        ) : null}
+        <ActionError error={save.error} />
         <Button
           className="self-start"
           onClick={() =>

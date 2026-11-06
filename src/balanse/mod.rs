@@ -1,6 +1,7 @@
 //! Balanse's own modules, beside the engine.
 
 pub mod account_emails;
+pub mod bounces;
 pub mod businesses;
 pub mod claims;
 pub mod contact_actions;

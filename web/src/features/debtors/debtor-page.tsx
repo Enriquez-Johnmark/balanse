@@ -1,6 +1,7 @@
 import { useParams } from "react-router"
 
 import { ApiError } from "@/api/client"
+import type { BounceRow } from "@/api/generated/BounceRow"
 import type { DebtorPage as DebtorDetail } from "@/api/generated/DebtorPage"
 import type { DebtRow } from "@/api/generated/DebtRow"
 import type { ReminderRow } from "@/api/generated/ReminderRow"
@@ -24,10 +25,11 @@ import { SentByHandDialog } from "@/features/copy/sent-by-hand-dialog"
 import { AddDebtDialog } from "@/features/debtors/add-debt-dialog"
 import { ChangeAmountDialog } from "@/features/debtors/change-amount-dialog"
 import { ClaimCard } from "@/features/debtors/claim-card"
+import { EditDebtorDialog } from "@/features/debtors/edit-debtor-dialog"
 import { OutcomeCard } from "@/features/debtors/outcome-card"
 import { useDebtor } from "@/features/debtors/queries"
 import { formatDate, formatDateTime } from "@/lib/dates"
-import { debtStatusLabel, messageStatusLabel, stepLabel } from "@/lib/labels"
+import { bounceKindLabel, debtStatusLabel, messageStatusLabel, stepLabel } from "@/lib/labels"
 
 /** One Debtor: its Contact, its Debts, its reminders and its replies. */
 export function DebtorPage() {
@@ -52,7 +54,10 @@ function DebtorContent({ debtor }: { debtor: DebtorDetail }) {
   ].filter(Boolean)
   return (
     <>
-      <PageHeader title={debtor.business_name} description={contact.join(" · ")} />
+      <PageHeader title={debtor.business_name} description={contact.join(" · ")}>
+        <EditDebtorDialog debtor={debtor} />
+      </PageHeader>
+      {debtor.bounces.length > 0 ? <BouncesCard bounces={debtor.bounces} /> : null}
       {debtor.claim ? <ClaimCard claim={debtor.claim} debtorName={debtor.business_name} /> : null}
       <OutcomeCard debtor={debtor} />
       <DebtsCard debtorId={debtor.id} debts={debtor.debts} />
@@ -154,6 +159,30 @@ function RemindersCard({ debtorId, reminders }: { debtorId: string; reminders: R
             ))}
           </ul>
         )}
+      </CardContent>
+    </Card>
+  )
+}
+
+/** F4: bounces and complaints; the provider's reason is shown as text. */
+function BouncesCard({ bounces }: { bounces: BounceRow[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Delivery problems</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ul className="flex flex-col gap-3 text-sm">
+          {bounces.map((bounce) => (
+            <li key={bounce.at + bounce.kind} className="flex flex-col">
+              <span className="font-medium">{bounceKindLabel(bounce.kind)}</span>
+              <span className="text-muted-foreground">
+                {bounce.address} · {formatDateTime(bounce.at)}
+                {bounce.reason ? ` · ${bounce.reason}` : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
       </CardContent>
     </Card>
   )

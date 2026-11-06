@@ -67,6 +67,17 @@ export function nextStep(debtor: { state: string; open_debts: number; drafts_wai
   return debtor.open_debts > 0 ? "Next reminder on schedule" : "Nothing to do"
 }
 
+const bounceKinds: Record<string, string> = {
+  bounce: "Bounced: the address doesn't take mail",
+  soft_bounce: "Bounced for now; it may arrive later",
+  complaint: "Marked as spam",
+}
+
+/** "soft_bounce" → "Bounced for now; it may arrive later". */
+export function bounceKindLabel(kind: string) {
+  return bounceKinds[kind] ?? kind
+}
+
 /** "needs_call" → "Needs your call". */
 export function debtorStateLabel(state: string) {
   return debtorStates[state] ?? state

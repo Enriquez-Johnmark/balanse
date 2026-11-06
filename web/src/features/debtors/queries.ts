@@ -45,6 +45,16 @@ export function useCreateDebtor() {
   })
 }
 
+/** F4: a changed Contact; a new address ends a stop after a bounce. */
+export function useUpdateDebtor(id: string) {
+  const refresh = useRefreshDebtors()
+  return useMutation({
+    mutationFn: (input: NewDebtor) =>
+      api<void>("PUT", `/api/debtors/${encodeURIComponent(id)}`, input),
+    onSuccess: refresh,
+  })
+}
+
 /** F3: the Owner's decision: paid, promised, disputed or resume. */
 export function useRecordOutcome(id: string) {
   const refresh = useRefreshDebtors()

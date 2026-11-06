@@ -107,6 +107,11 @@ function DebtorList({ debtors }: { debtors: DebtorRow[] }) {
                       until {formatDate(debtor.promised_until)}
                     </div>
                   ) : null}
+                  {debtor.soft_bounce_at ? (
+                    <div className="text-xs text-warning">
+                      Email bounced for now, {formatDay(debtor.soft_bounce_at)}
+                    </div>
+                  ) : null}
                 </TableCell>
                 <TableCell className="hidden whitespace-normal lg:table-cell">
                   {debtor.last_message_status && debtor.last_message_at ? (

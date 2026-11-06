@@ -196,3 +196,15 @@ test("h2 the Owner's pages show no totals, aging or accounting documents", async
     expect(await page.locator("body").innerText()).not.toMatch(never)
   }
 })
+
+test("f4 the Owner changes a Debtor's Contact", async ({ page }) => {
+  await addDebtor(page, `Ong Builders ${run}`, "lito@ongbuilders.test")
+
+  await page.getByRole("button", { name: "Edit details" }).click()
+  const dialog = page.getByRole("dialog", { name: /^Edit Ong Builders/ })
+  await dialog.getByLabel("Contact's email").fill("mila@ongbuilders.test")
+  await dialog.getByRole("button", { name: "Save" }).click()
+
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText(/mila@ongbuilders\.test/)).toBeVisible()
+})

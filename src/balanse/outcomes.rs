@@ -69,7 +69,7 @@ impl Outcomes {
         let now = self.clock.now();
         let mut tx = self.pool.begin().await?;
         let settled = sqlx::query!(
-            "update debts set status = 'paid', updated_at = $3
+            "update debts set status = 'paid', closed_at = $3, updated_at = $3
              where tenant_id = $1 and debtor_id = $2 and status in ('open', 'payment_claimed', 'disputed')",
             business.as_uuid(),
             debtor.as_uuid(),

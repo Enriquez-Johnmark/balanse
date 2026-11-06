@@ -195,6 +195,9 @@ async fn f4_an_event_delivered_twice_is_kept_once(pool: PgPool) {
     bounces.record(&bounced("re_1", true)).await.unwrap();
     let again = bounces.record(&bounced("re_1", true)).await.unwrap();
 
-    let kept: i64 = sqlx::query_scalar("select count(*) from bounces").fetch_one(&pool).await.unwrap();
+    let kept: i64 = sqlx::query_scalar("select count(*) from bounces")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
     assert_eq!((again, kept), (Recorded::Stopped, 1));
 }

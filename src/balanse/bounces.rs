@@ -2,9 +2,9 @@
 //! for reminders Balanse sent. Only an event matching one of our messages
 //! counts.
 //!
-//! A permanent bounce or a complaint marks the Debtor `bounced`, which stops
-//! its reminders until the Owner changes the Contact's address; its waiting
-//! reminders are cancelled. A temporary bounce is only noted, for the
+//! A permanent bounce or a complaint marks every Debtor of the Business at
+//! that address `bounced`, which stops their reminders until the Owner
+//! changes the Contact's address; their waiting reminders are cancelled. A temporary bounce is only noted, for the
 //! dashboard. A Debtor who asked to stop stays `opted_out`.
 //!
 //! Recording is a system-wide worker: the provider's message ID names the
@@ -118,21 +118,22 @@ impl Bounces {
             tx.commit().await?;
             return Ok(Recorded::Noted);
         }
-        // A late bounce for an address since replaced stops nothing.
-        let stopped = sqlx::query!(
-            "update debtors set state = 'bounced', promised_until = null, updated_at = $4
-             where tenant_id = $1 and id = $2 and lower(trim(contact_email)) = $3
-               and state <> 'opted_out'",
+        // Every Debtor of this Business at the failed address stops (F4); a
+        // late bounce for an address since replaced stops nothing.
+        let stopped: Vec<DebtorId> = sqlx::query_scalar!(
+            "update debtors set state = 'bounced', promised_until = null, updated_at = $3
+             where tenant_id = $1 and lower(trim(contact_email)) = $2 and state <> 'opted_out'
+             returning id",
             business.as_uuid(),
-            debtor.as_uuid(),
             address,
             now,
         )
-        .execute(&mut *tx)
+        .fetch_all(&mut *tx)
         .await?
-        .rows_affected()
-            > 0;
-        if stopped {
+        .into_iter()
+        .map(DebtorId::from)
+        .collect();
+        for stopped in &stopped {
             audit::record(
                 &mut *tx,
                 &AuditEvent {
@@ -141,17 +142,19 @@ impl Bounces {
                     actor: SYSTEM,
                     action: "debtor.bounced",
                     subject_type: "debtor",
-                    subject_id: debtor.as_uuid(),
-                    details: json!({ "kind": kind, "message": sent.id.as_uuid() }),
+                    subject_id: stopped.as_uuid(),
+                    details: json!({ "kind": kind, "message": sent.id.as_uuid(), "debtor": debtor.as_uuid() }),
                 },
             )
             .await?;
         }
         tx.commit().await?;
-        if !stopped {
+        if stopped.is_empty() {
             return Ok(Recorded::Noted);
         }
-        cancel_waiting(&self.outbox, &self.pool, business, debtor, SYSTEM).await?;
+        for stopped in stopped {
+            cancel_waiting(&self.outbox, &self.pool, business, stopped, SYSTEM).await?;
+        }
         Ok(Recorded::Stopped)
     }
 }

@@ -201,3 +201,30 @@ async fn f4_an_event_delivered_twice_is_kept_once(pool: PgPool) {
         .unwrap();
     assert_eq!((again, kept), (Recorded::Stopped, 1));
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn f4_a_bounce_stops_every_debtor_with_that_address(pool: PgPool) {
+    let clock = clock();
+    let (business, _) = sent(&pool, &clock).await;
+    // The same accountant pays for a second client.
+    let second = balanse::balanse::debtors::Debtors::new(pool.clone(), clock.clone())
+        .create(
+            business,
+            &balanse::balanse::debtors::DebtorInput {
+                business_name: "Santos Foods".to_owned(),
+                contact_name: "Lito".to_owned(),
+                contact_email: "Lito@Santos.test".to_owned(),
+                contact_mobile: String::new(),
+                language: "english".to_owned(),
+            },
+        )
+        .await
+        .unwrap();
+
+    Bounces::new(pool.clone(), clock.clone())
+        .record(&bounced("re_1", true))
+        .await
+        .unwrap();
+
+    assert_eq!(state(&pool, second).await, "bounced");
+}

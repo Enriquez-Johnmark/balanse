@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update debtors set state = 'bounced', promised_until = null, updated_at = $3\n             where tenant_id = $1 and lower(trim(contact_email)) = $2 and state <> 'opted_out'\n             returning id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9b5dee8dc7d1954cd118aff6f615b44c828b12eda0ecb7a10ab752eaa11d5464"
+}

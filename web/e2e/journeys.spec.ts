@@ -208,3 +208,29 @@ test("f4 the Owner changes a Debtor's Contact", async ({ page }) => {
   await expect(dialog).toHaveCount(0)
   await expect(page.getByText(/mila@ongbuilders\.test/)).toBeVisible()
 })
+
+test("h5 the Owner downloads all their data", async ({ page }) => {
+  await page.goto("/settings")
+  const download = page.waitForEvent("download")
+  await page.getByRole("button", { name: "Download all your data" }).click()
+
+  const file = await download
+  expect(file.suggestedFilename()).toMatch(/^balanse-data-\d{4}-\d{2}-\d{2}\.json$/)
+  const data = JSON.parse(readFileSync(await file.path(), "utf8")) as {
+    business: { name: string }
+  }
+  expect(data.business.name).toBe("E2E Creative")
+})
+
+// Closes the shared Business, so it must stay the last test in this file.
+test("h5 closing the account logs the Owner out and says when it's erased", async ({ page }) => {
+  await page.goto("/settings")
+  await page.getByRole("button", { name: "Close account" }).click()
+  const dialog = page.getByRole("dialog", { name: "Close your account?" })
+  await dialog.getByLabel("Your business name").fill("E2E Creative")
+  await dialog.getByRole("button", { name: "Close account" }).click()
+
+  await expect(page.getByText(/Your account is closed\. Everything is deleted on/)).toBeVisible()
+  await page.goto("/")
+  await expect(page).toHaveURL(/\/login$/)
+})

@@ -10,17 +10,22 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
+import { useMe } from "@/app/queries"
 import { ActionError } from "@/features/settings/action-error"
+import { CloseAccountCard, DownloadDataCard } from "@/features/settings/leaving-cards"
 import { useSaveInstructions, useSettings } from "@/features/settings/queries"
 
 export function SettingsPage() {
   const settings = useSettings()
+  const me = useMe()
   return (
     <>
       <PageHeader title="Settings" />
       {settings.isPending ? <Skeleton className="h-64" /> : null}
       {settings.isError ? <QueryError error={settings.error} /> : null}
       {settings.data ? <InstructionsCard settings={settings.data} /> : null}
+      <DownloadDataCard />
+      {me.data ? <CloseAccountCard businessName={me.data.business_name} /> : null}
     </>
   )
 }

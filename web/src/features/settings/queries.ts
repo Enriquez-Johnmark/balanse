@@ -1,14 +1,41 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/api/client"
+import type { CloseAccount } from "@/api/generated/CloseAccount"
+import type { Closed } from "@/api/generated/Closed"
 import type { NewInstructions } from "@/api/generated/NewInstructions"
 import type { Settings } from "@/api/generated/Settings"
 import { settingsKeys } from "@/app/query-keys"
+import { todayInManila } from "@/lib/dates"
 
 export function useSettings() {
   return useQuery({
     queryKey: settingsKeys.all(),
     queryFn: () => api<Settings>("GET", "/api/settings"),
+  })
+}
+
+/** H5: everything, as one JSON file; the API asks for a recent login. */
+export function useDownloadData() {
+  return useMutation({
+    mutationFn: async () => {
+      const data = await api<unknown>("GET", "/api/export")
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+      )
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `balanse-data-${todayInManila()}.json`
+      link.click()
+      URL.revokeObjectURL(url)
+    },
+  })
+}
+
+/** H5: closes the account; the API erases it after its grace period. */
+export function useCloseAccount() {
+  return useMutation({
+    mutationFn: (input: CloseAccount) => api<Closed>("POST", "/api/account/close", input),
   })
 }
 

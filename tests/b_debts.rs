@@ -174,3 +174,37 @@ async fn b3_changing_an_amount_is_recorded_in_the_evidence_log(pool: PgPool) {
             .unwrap();
     assert_eq!(details, serde_json::json!({ "from": "₱12,500.00", "to": "₱5,000.00" }));
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn b1_a_changed_contact_name_redrafts_the_waiting_reminder(pool: PgPool) {
+    let clock = clock();
+    let business = business(&pool, &clock).await;
+    let debtors = Debtors::new(pool.clone(), clock.clone());
+    let id = debtors.create(business, &debtor()).await.unwrap();
+    Debts::new(pool.clone(), clock.clone())
+        .create(business, id, &debt())
+        .await
+        .unwrap();
+    let scheduler = common::scheduler(&pool, &clock);
+    scheduler.run().await.unwrap();
+
+    debtors
+        .update(
+            business,
+            id,
+            &DebtorInput {
+                contact_name: "Mila".to_owned(),
+                ..debtor()
+            },
+            "ana@reyes.test",
+        )
+        .await
+        .unwrap();
+    scheduler.run().await.unwrap();
+
+    let waiting: Vec<String> = sqlx::query_scalar("select body_text from outbox_messages where status = 'draft'")
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert!(waiting.len() == 1 && waiting[0].starts_with("Hi Mila"), "{waiting:?}");
+}

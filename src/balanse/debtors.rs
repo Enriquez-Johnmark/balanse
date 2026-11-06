@@ -156,8 +156,8 @@ impl Debtors {
     }
 
     /// Changes one of `business`'s Debtors and its Contact. A new address
-    /// ends a stop after a bounce (F4), and waiting reminders are drafted
-    /// again for it. `by` names who did it in the audit log.
+    /// ends a stop after a bounce (F4); waiting reminders are drafted again
+    /// when anything they show changed. `by` names who did it in the audit log.
     pub async fn update(
         &self,
         business: BusinessId,
@@ -168,15 +168,22 @@ impl Debtors {
         let input = check(input)?;
         let now = self.clock.now();
         let mut tx = self.pool.begin().await?;
-        let before = sqlx::query_scalar!(
-            "select contact_email from debtors where tenant_id = $1 and id = $2 for update",
+        let before = sqlx::query!(
+            "select business_name, contact_name, contact_email, language from debtors
+             where tenant_id = $1 and id = $2 for update",
             business.as_uuid(),
             id.as_uuid(),
         )
         .fetch_optional(&mut *tx)
         .await?
         .ok_or(DebtorError::NotFound)?;
-        let new_address = !before.trim().eq_ignore_ascii_case(&input.contact_email);
+        let new_address = !before.contact_email.trim().eq_ignore_ascii_case(&input.contact_email);
+        // Waiting reminders name the Debtor and greet the Contact in their
+        // language; any of these changing means drafting them again.
+        let reworded = new_address
+            || before.business_name != input.business_name
+            || before.contact_name != input.contact_name
+            || before.language != input.language;
         sqlx::query!(
             "update debtors
              set business_name = $3, contact_name = $4, contact_email = $5, contact_mobile = $6, language = $7,
@@ -209,7 +216,7 @@ impl Debtors {
         )
         .await?;
         tx.commit().await?;
-        if new_address {
+        if reworded {
             redraft_waiting(&self.outbox, &self.pool, business, id, by).await?;
         }
         Ok(())

@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select business_name, contact_name, contact_email, language from debtors\n             where tenant_id = $1 and id = $2 for update",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "business_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "business_name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "contact_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "contact_email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_email"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "language"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c5d9cc815266ff85bf20794023cc3e4e445bf65b7a361903b5a62cbcab1c0969"
+}

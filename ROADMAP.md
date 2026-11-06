@@ -4,24 +4,23 @@ Where Balanse stands and what comes next, in one page. Dated facts come from `do
 
 ## Where we are
 
-**M1–M4 done, M5 next.** Research, brief, spec (38 acceptance criteria) and architecture are approved; the core loop works end to end and was code-reviewed, with its findings fixed.
+**M1–M5 done; M6 (deployment) waits for the domain.** Research, brief, spec (38 acceptance criteria) and architecture are approved; the core loop works end to end and was code-reviewed, with its findings fixed.
 
 | Step | What it delivers | Status |
 |---|---|---|
-| Engine | Nudgewright v0.3.0 (accounts, sheets), v0.4.0 (held messages don't expire), v0.4.1 (when a session started), v0.4.2 (calamine security fix), v0.4.3 (blank CSV rows) | Done |
+| Engine | Nudgewright v0.3.0 (accounts, sheets), v0.4.0 (held messages don't expire), v0.4.1 (when a session started), v0.4.2 (calamine security fix), v0.4.3 (blank CSV rows), v0.4.4 (forgetting finished messages) | Done |
 | M1 | Sign-up and login, Debtors and invoices by form, the schedule, template Drafts, approval, sending once within sending hours, replies pausing reminders; the React app | Done (2026-10-24) |
 | M2 | The Debtor's page: signed 60-day link, open invoices and payment instructions, "I've paid" with proof upload, "I dispute this", "Stop emailing me"; the Owner confirms or rejects claims; payment instructions need a fresh login | Done (2026-11-05), code-reviewed |
 | M3 | AI-worded Drafts (Claude Haiku) with template fallback, and the content guard | Done (2026-11-05), code-reviewed; AI wording turns on with an API key |
 | M4 | Spreadsheet import, the dashboard, "copy and open" for Viber, Messenger, WhatsApp and SMS | Done (2026-11-05), code-reviewed |
-| M5 | Bounces and complaints, the evidence log and its export, leaving, retention | |
+| M5 | Bounces and complaints, the evidence log and its export, leaving, retention | Done (2026-11-06), code-reviewed |
 | M6 | Deployment, once `balanseapp.com` is bought | |
 
 ## Next
 
-1. M5: bounces and complaints, the evidence log and its export, leaving, retention; ending with a code review.
-2. **Owner, before pilots:** try First Circle Invoice (waitlist), Lista and PayMongo Invoices (beta) and report what each does: the brief's kill-checks (moved from before M2 on 2026-10-25).
-3. **Owner, before M6:** buy `balanseapp.com`.
-4. Pilots: B2B service businesses and agencies first, bookkeepers through Kompleto second; ₱0 until then.
+1. **Owner, before pilots:** try First Circle Invoice (waitlist), Lista and PayMongo Invoices (beta) and report what each does: the brief's kill-checks (moved from before M2 on 2026-10-25).
+2. **Owner, before M6:** buy `balanseapp.com`.
+3. Pilots: B2B service businesses and agencies first, bookkeepers through Kompleto second; ₱0 until then.
 
 ## Limits that never move
 

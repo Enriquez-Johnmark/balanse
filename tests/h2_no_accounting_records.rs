@@ -125,12 +125,22 @@ async fn h2_no_page_answer_or_export_is_an_accounting_record(pool: PgPool) {
     let path = &link[link.find("/d/").unwrap()..];
     let (_, page) = get_page(&app, path).await;
     let template = template(&app, &cookie).await;
+    let evidence = file(&app, &format!("/api/debtors/{}/evidence-log", ids[0]), &cookie).await;
+    let data = file(&app, "/api/export", &cookie).await;
+    let data_keys = {
+        let mut keys = Vec::new();
+        every_key(&serde_json::from_str(&data.1).unwrap(), &mut keys);
+        keys
+    };
 
     let mut keys = Vec::new();
     answers.iter().for_each(|answer| every_key(answer, &mut keys));
     let text = format!(
-        "{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}",
         keys.join(" "),
+        data_keys.join(" "),
+        evidence.1,
+        data.1,
         serde_json::to_string(&answers).unwrap(),
         page,
         template
@@ -151,6 +161,8 @@ async fn h2_no_page_answer_or_export_is_an_accounting_record(pool: PgPool) {
             .map(|draft| draft["subject"].as_str().unwrap().to_owned()),
     );
     titles.push("balanse-debts.csv".to_owned());
+    titles.push(evidence.0);
+    titles.push(data.0);
     assert!(titles.len() > 3, "{titles:?}");
     for title in titles {
         assert!(!is_document_title(&title), "{title:?} is titled as a document");
@@ -184,4 +196,24 @@ async fn template(app: &axum::Router, cookie: &str) -> String {
     );
     let bytes = axum::body::to_bytes(response.into_body(), 1 << 20).await.unwrap();
     String::from_utf8(bytes.to_vec()).unwrap()
+}
+
+/// `GET path` with `cookie`: the file name it is saved as, and its text.
+async fn file(app: &axum::Router, path: &str, cookie: &str) -> (String, String) {
+    use tower::ServiceExt;
+    let request = axum::http::Request::get(path)
+        .header("cookie", cookie)
+        .body(axum::body::Body::empty())
+        .unwrap();
+    let response = app.clone().oneshot(request).await.unwrap();
+    assert_eq!(response.status().as_u16(), 200, "{path}");
+    let disposition = response.headers()["content-disposition"].to_str().unwrap().to_owned();
+    let name = disposition
+        .split("filename=\"")
+        .nth(1)
+        .unwrap()
+        .trim_end_matches('"')
+        .to_owned();
+    let bytes = axum::body::to_bytes(response.into_body(), 1 << 20).await.unwrap();
+    (name, String::from_utf8(bytes.to_vec()).unwrap())
 }

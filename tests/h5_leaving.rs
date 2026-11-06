@@ -73,3 +73,49 @@ async fn h5_downloading_everything_needs_a_recent_login(pool: PgPool) {
 
     assert_eq!(status, 403);
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn h5_closing_the_account_deletes_everything_within_30_days(pool: PgPool) {
+    let clock = clock();
+    sent(&pool, &clock).await;
+    let app = app(&pool, &clock);
+    let ana = log_in(&app, &pool, "ana@reyes.test").await;
+    let dir = tempfile::tempdir().unwrap();
+    let accounts = balanse::engine::accounts::Accounts::new(pool.clone(), clock.clone());
+
+    let wrong = common::call(
+        &app,
+        "POST",
+        "/api/account/close",
+        Some(serde_json::json!({ "typed_name": "Reyes" })),
+        Some(&ana),
+    )
+    .await;
+    let closed = common::call(
+        &app,
+        "POST",
+        "/api/account/close",
+        Some(serde_json::json!({ "typed_name": "reyes creative" })),
+        Some(&ana),
+    )
+    .await;
+    let after = common::call(&app, "GET", "/api/me", None, Some(&ana)).await;
+    clock.advance(Duration::days(30));
+    accounts
+        .erase_due(&common::files(&pool, &clock, dir.path()))
+        .await
+        .unwrap();
+
+    assert_eq!(
+        (wrong.status.as_u16(), closed.status.as_u16(), after.status.as_u16()),
+        (422, 200, 401)
+    );
+    assert!(closed.body["erase_after"].is_string(), "{}", closed.body);
+    for table in ["accounts", "businesses", "debtors", "debts", "outbox_messages"] {
+        let left: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!("select count(*) from {table}")))
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(left, 0, "{table} still has rows");
+    }
+}

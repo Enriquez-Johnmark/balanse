@@ -264,6 +264,7 @@ async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> an
         &clock,
     )?;
     let retention = Retention::new(pool.clone(), clock.clone());
+    let accounts = balanse::engine::accounts::Accounts::new(pool.clone(), clock.clone());
     tokio::spawn(async move {
         loop {
             if let Err(err) = scheduler.run().await {
@@ -273,6 +274,11 @@ async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> an
                 Ok(swept) if swept != Swept::default() => tracing::info!(?swept, "data past its time deleted"),
                 Ok(_) => {}
                 Err(err) => tracing::error!(%err, "deleting data past its time failed"),
+            }
+            match accounts.erase_due(&files).await {
+                Ok(0) => {}
+                Ok(erased) => tracing::info!(erased, "closed accounts erased"),
+                Err(err) => tracing::error!(%err, "erasing closed accounts failed"),
             }
             match files.sweep().await {
                 Ok(0) => {}

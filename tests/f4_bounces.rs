@@ -185,3 +185,16 @@ async fn f4_a_temporary_bounce_shows_on_the_dashboard_for_a_week(pool: PgPool) {
 
     assert_eq!((shown.is_some(), later), (true, None));
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn f4_an_event_delivered_twice_is_kept_once(pool: PgPool) {
+    let clock = clock();
+    sent(&pool, &clock).await;
+    let bounces = Bounces::new(pool.clone(), clock.clone());
+
+    bounces.record(&bounced("re_1", true)).await.unwrap();
+    let again = bounces.record(&bounced("re_1", true)).await.unwrap();
+
+    let kept: i64 = sqlx::query_scalar("select count(*) from bounces").fetch_one(&pool).await.unwrap();
+    assert_eq!((again, kept), (Recorded::Stopped, 1));
+}

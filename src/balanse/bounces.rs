@@ -101,7 +101,8 @@ impl Bounces {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(
             "insert into bounces (id, tenant_id, debtor_id, message_id, address, kind, reason, at)
-             values ($1, $2, $3, $4, $5, $6, $7, $8)",
+             values ($1, $2, $3, $4, $5, $6, $7, $8)
+             on conflict (message_id, kind) do nothing",
             Uuid::now_v7(),
             business.as_uuid(),
             debtor.as_uuid(),

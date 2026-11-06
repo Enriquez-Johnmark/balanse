@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select m.subject, m.body_text, m.to_address, m.approved_at, m.approved_by, m.sent_at\n             from reminders r join outbox_messages m on m.tenant_id = r.tenant_id and m.id = r.message_id\n             where r.tenant_id = $1 and r.debtor_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "subject"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "body_text",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "body_text"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "to_address",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "to_address"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "approved_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "approved_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "approved_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "approved_by"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "sent_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "sent_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "f9bd21d68115726ca10a982db4ae050e5d09fc9a2fbeb7b7b2807143abea565f"
+}

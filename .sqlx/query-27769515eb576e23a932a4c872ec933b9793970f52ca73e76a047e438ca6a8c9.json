@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select sent_at, logged_by from manual_sends where tenant_id = $1 and debtor_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sent_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "manual_sends",
+            "name": "sent_at"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "logged_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "manual_sends",
+            "name": "logged_by"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "27769515eb576e23a932a4c872ec933b9793970f52ca73e76a047e438ca6a8c9"
+}

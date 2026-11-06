@@ -300,10 +300,11 @@ pub async fn sent(pool: &PgPool, clock: &Arc<FixedClock>) -> (BusinessId, balans
         .unwrap();
     scheduler(pool, clock).run().await.unwrap();
     sqlx::query(
-        "update outbox_messages set status = 'sent', provider_message_id = 're_1', sent_at = now(),
-                approved_hash = '\\x00', approved_at = now(), approved_by = 'ana@reyes.test'
+        "update outbox_messages set status = 'sent', provider_message_id = 're_1', sent_at = $1,
+                approved_hash = '\\x00', approved_at = $1, approved_by = 'ana@reyes.test'
          where status = 'draft'",
     )
+    .bind(balanse::engine::clock::Clock::now(clock.as_ref()))
     .execute(pool)
     .await
     .unwrap();

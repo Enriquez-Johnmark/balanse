@@ -80,11 +80,18 @@ impl Retention {
         let cutoff = now - CLOSED_DEBT_KEPT;
         let debtors = self.erase_settled_debtors(cutoff).await?;
         // Debtors that still owe keep their messages, which are evidence for
-        // what is still open.
-        let debts = sqlx::query!("delete from debts where closed_at <= $1", cutoff,)
-            .execute(&self.pool)
-            .await?
-            .rows_affected();
+        // what is still open. A settled Debtor waiting for a message to
+        // finish keeps its Debts too, so the next sweep still finds it.
+        let debts = sqlx::query!(
+            "delete from debts t
+             where t.closed_at <= $1
+               and exists (select 1 from debts o
+                           where o.tenant_id = t.tenant_id and o.debtor_id = t.debtor_id and o.closed_at is null)",
+            cutoff,
+        )
+        .execute(&self.pool)
+        .await?
+        .rows_affected();
         Ok(Swept {
             reply_texts,
             debtors,

@@ -190,3 +190,34 @@ async fn h3_an_old_closed_debt_goes_while_an_open_one_keeps_the_debtor(pool: PgP
         .unwrap();
     assert_eq!((left, count(&pool, "debtors").await), (vec!["INV-2".to_owned()], 1));
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn h3_a_settled_debtor_with_a_message_still_going_out_is_erased_later(pool: PgPool) {
+    let clock = clock();
+    let (business, debtor) = sent(&pool, &clock).await;
+    Outcomes::new(pool.clone(), clock.clone())
+        .paid(business, debtor, "ana@reyes.test")
+        .await
+        .unwrap();
+    // The message is still being sent when the year is up.
+    sqlx::query("update outbox_messages set status = 'sending', send_started_at = sent_at")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let retention = Retention::new(pool.clone(), clock.clone());
+    clock.advance(time::Duration::days(366));
+
+    retention.sweep().await.unwrap();
+    let waiting = (count(&pool, "debtors").await, count(&pool, "debts").await);
+    sqlx::query("update outbox_messages set status = 'sent'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    retention.sweep().await.unwrap();
+
+    assert_eq!(waiting, (1, 1), "kept whole until its message is done");
+    assert_eq!(
+        (count(&pool, "debtors").await, count(&pool, "outbox_messages").await),
+        (0, 0)
+    );
+}

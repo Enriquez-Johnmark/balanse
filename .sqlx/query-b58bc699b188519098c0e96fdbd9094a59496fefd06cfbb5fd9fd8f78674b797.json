@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from debts t\n             where t.closed_at <= $1\n               and exists (select 1 from debts o\n                           where o.tenant_id = t.tenant_id and o.debtor_id = t.debtor_id and o.closed_at is null)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b58bc699b188519098c0e96fdbd9094a59496fefd06cfbb5fd9fd8f78674b797"
+}

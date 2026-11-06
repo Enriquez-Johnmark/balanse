@@ -6,60 +6,12 @@
 
 mod common;
 
-use std::sync::Arc;
-
 use balanse::balanse::bounces::{Bounces, Recorded};
-use balanse::balanse::businesses::BusinessId;
-use balanse::balanse::debtors::{DebtorId, DebtorInput, Debtors};
-use balanse::balanse::debts::{DebtInput, Debts};
-use balanse::engine::clock::FixedClock;
+use balanse::balanse::debtors::DebtorId;
 use balanse::engine::webhooks::DeliveryEvent;
-use common::{business, clock, scheduler};
+use common::{clock, scheduler, sent};
 use sqlx::PgPool;
 use time::Duration;
-
-/// A Debtor owing one overdue invoice, with its first reminder sent as
-/// provider message `re_1`.
-async fn sent(pool: &PgPool, clock: &Arc<FixedClock>) -> (BusinessId, DebtorId) {
-    let business = business(pool, clock).await;
-    let debtor = Debtors::new(pool.clone(), clock.clone())
-        .create(
-            business,
-            &DebtorInput {
-                business_name: "Santos Trading".to_owned(),
-                contact_name: "Lito".to_owned(),
-                contact_email: "lito@santos.test".to_owned(),
-                contact_mobile: String::new(),
-                language: "english".to_owned(),
-            },
-        )
-        .await
-        .unwrap();
-    Debts::new(pool.clone(), clock.clone())
-        .create(
-            business,
-            debtor,
-            &DebtInput {
-                invoice_number: "INV-1".to_owned(),
-                invoice_date: "2026-09-01".to_owned(),
-                amount: "₱1,000".to_owned(),
-                due_date: "2026-10-01".to_owned(),
-                note: String::new(),
-            },
-        )
-        .await
-        .unwrap();
-    scheduler(pool, clock).run().await.unwrap();
-    sqlx::query(
-        "update outbox_messages set status = 'sent', provider_message_id = 're_1', sent_at = now(),
-                approved_hash = '\\x00', approved_at = now(), approved_by = 'ana@reyes.test'
-         where status = 'draft'",
-    )
-    .execute(pool)
-    .await
-    .unwrap();
-    (business, debtor)
-}
 
 fn bounced(id: &str, permanent: bool) -> DeliveryEvent {
     DeliveryEvent::Bounced {

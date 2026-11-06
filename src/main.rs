@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use balanse::balanse::account_emails::welcome_email;
+use balanse::balanse::bounces::Bounces;
 use balanse::balanse::debtor_links::DebtorLinks;
 use balanse::balanse::drafting::ModelWording;
 use balanse::balanse::presend::BalanseChecks;
@@ -233,6 +234,11 @@ async fn serve(config: &Config, pool: sqlx::PgPool, clock: Arc<dyn Clock>) -> an
         state = state.with_inbound(secret.clone(), replies);
     } else {
         tracing::warn!("INBOUND_SECRET isn't set: replies aren't taken in");
+    }
+    if let Some(secret) = &config.resend_webhook_secret {
+        state = state.with_delivery_events(secret.clone(), Bounces::new(pool.clone(), clock.clone()));
+    } else {
+        tracing::warn!("RESEND_WEBHOOK_SECRET isn't set: bounces and complaints aren't taken in");
     }
     let wake = state.sender_wake_up();
 

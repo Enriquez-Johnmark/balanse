@@ -52,6 +52,9 @@ pub struct Config {
     /// Proves inbound email comes from the provider; without it, replies
     /// aren't taken in.
     pub inbound_secret: Option<SecretString>,
+    /// Proves delivery events come from Resend (`whsec_…`); without it,
+    /// bounces and complaints aren't taken in.
+    pub resend_webhook_secret: Option<SecretString>,
     /// The built React app (`WEB_DIR`, default `web/dist`).
     pub web_dir: std::path::PathBuf,
     /// Where encrypted proof files are kept (`UPLOAD_DIR`, default `uploads`).
@@ -112,6 +115,7 @@ impl Config {
             master_key_hex: SecretString::from(required("MASTER_KEY")?),
             bind_addr: optional("BIND_ADDR").unwrap_or_else(|| "127.0.0.1:3000".to_owned()),
             inbound_secret: optional("INBOUND_SECRET").map(SecretString::from),
+            resend_webhook_secret: optional("RESEND_WEBHOOK_SECRET").map(SecretString::from),
             web_dir: optional("WEB_DIR").map_or_else(|| "web/dist".into(), Into::into),
             upload_dir: optional("UPLOAD_DIR").map_or_else(|| "uploads".into(), Into::into),
             clamd_addr: optional("CLAMD_ADDR"),

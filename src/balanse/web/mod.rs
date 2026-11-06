@@ -28,6 +28,7 @@ use sqlx::PgPool;
 use tokio::sync::Notify;
 use tower_http::trace::TraceLayer;
 
+use crate::balanse::bounces::Bounces;
 use crate::balanse::claims::Claims;
 use crate::balanse::contact_actions::ContactActions;
 use crate::balanse::debtor_links::DebtorLinks;
@@ -75,8 +76,16 @@ pub struct AppState {
     wake_sender: Arc<Notify>,
     /// Inbound email, when `INBOUND_SECRET` is set.
     inbound: Option<Arc<Inbound>>,
+    /// Delivery events, when `RESEND_WEBHOOK_SECRET` is set.
+    delivery_events: Option<Arc<DeliveryEvents>>,
     /// The built React app (`WEB_DIR`), when served by this server.
     web_dir: Option<Arc<std::path::PathBuf>>,
+}
+
+/// Taking in the provider's delivery events (F4).
+struct DeliveryEvents {
+    secret: SecretString,
+    bounces: Bounces,
 }
 
 /// Taking in replies.
@@ -110,6 +119,7 @@ impl AppState {
             secure_cookies: base_url.starts_with("https://"),
             wake_sender: Arc::new(Notify::new()),
             inbound: None,
+            delivery_events: None,
             proofs: None,
             xlsx: None,
             upload_slots: Arc::new(tokio::sync::Semaphore::new(debtor_page::UPLOAD_SLOTS)),
@@ -126,6 +136,13 @@ impl AppState {
     #[must_use]
     pub fn with_inbound(mut self, secret: SecretString, replies: Replies) -> Self {
         self.inbound = Some(Arc::new(Inbound { secret, replies }));
+        self
+    }
+
+    /// Takes in delivery events signed with `secret` (F4).
+    #[must_use]
+    pub fn with_delivery_events(mut self, secret: SecretString, bounces: Bounces) -> Self {
+        self.delivery_events = Some(Arc::new(DeliveryEvents { secret, bounces }));
         self
     }
 

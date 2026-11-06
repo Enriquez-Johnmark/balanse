@@ -229,6 +229,7 @@ dependencies = [
  "askama",
  "askama_web",
  "axum",
+ "base64 0.22.1",
  "dotenvy",
  "hmac",
  "nudgewright",

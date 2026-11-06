@@ -266,3 +266,46 @@ pub fn app_with_proofs(pool: &PgPool, clock: &Arc<FixedClock>, dir: &std::path::
         balanse::balanse::web::AppState::new(pool.clone(), clock.clone(), &master(), BASE_URL).with_proofs(proofs),
     )
 }
+
+/// A Debtor owing one overdue invoice, with its first reminder sent as
+/// provider message `re_1`.
+pub async fn sent(pool: &PgPool, clock: &Arc<FixedClock>) -> (BusinessId, balanse::balanse::debtors::DebtorId) {
+    let business = business(pool, clock).await;
+    let debtor = balanse::balanse::debtors::Debtors::new(pool.clone(), clock.clone())
+        .create(
+            business,
+            &balanse::balanse::debtors::DebtorInput {
+                business_name: "Santos Trading".to_owned(),
+                contact_name: "Lito".to_owned(),
+                contact_email: "lito@santos.test".to_owned(),
+                contact_mobile: String::new(),
+                language: "english".to_owned(),
+            },
+        )
+        .await
+        .unwrap();
+    balanse::balanse::debts::Debts::new(pool.clone(), clock.clone())
+        .create(
+            business,
+            debtor,
+            &balanse::balanse::debts::DebtInput {
+                invoice_number: "INV-1".to_owned(),
+                invoice_date: "2026-09-01".to_owned(),
+                amount: "₱1,000".to_owned(),
+                due_date: "2026-10-01".to_owned(),
+                note: String::new(),
+            },
+        )
+        .await
+        .unwrap();
+    scheduler(pool, clock).run().await.unwrap();
+    sqlx::query(
+        "update outbox_messages set status = 'sent', provider_message_id = 're_1', sent_at = now(),
+                approved_hash = '\\x00', approved_at = now(), approved_by = 'ana@reyes.test'
+         where status = 'draft'",
+    )
+    .execute(pool)
+    .await
+    .unwrap();
+    (business, debtor)
+}

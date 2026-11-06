@@ -1,0 +1,125 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select r.step, m.status, m.to_address, m.subject, m.body_text, m.approved_at, m.approved_by, m.sent_at,\n                    m.created_at\n             from reminders r join outbox_messages m on m.tenant_id = r.tenant_id and m.id = r.message_id\n             where r.tenant_id = $1 and r.debtor_id = $2 order by m.created_at, m.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "step",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "step"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "to_address",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "to_address"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "subject"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "body_text",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "body_text"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "approved_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "approved_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "approved_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "approved_by"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "sent_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "sent_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "outbox_messages",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "6861c9442503f5c67a59ba1b71f2396b9b0b148c523023ae9c02920bf99cadea"
+}

@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select invoice_number, invoice_date, amount, due_date, note, status, created_at, closed_at\n             from debts where tenant_id = $1 and debtor_id = $2 order by created_at, id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "invoice_number",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "invoice_number"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "invoice_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "invoice_date"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "amount"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "due_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "due_date"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "closed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "debts",
+            "name": "closed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "474d8b74471357c9f834509ada6323139b4c5a059b09228bfb183d9784ce970d"
+}

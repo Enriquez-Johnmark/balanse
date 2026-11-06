@@ -12,6 +12,7 @@ mod copy;
 mod debtors;
 mod drafts;
 mod import;
+mod leaving;
 mod login;
 mod settings;
 mod signup;
@@ -36,6 +37,7 @@ pub(super) fn routes() -> Router<AppState> {
         .merge(debtors::routes())
         .merge(copy::routes())
         .merge(drafts::routes())
+        .merge(leaving::routes())
         .merge(import::routes())
         .merge(settings::routes())
         .merge(login::routes())
@@ -183,7 +185,8 @@ impl FromRequestParts<AppState> for ApiMember {
 }
 
 /// How recently the Owner must have logged in to change something that
-/// could redirect a Debtor's money, such as payment instructions (G6).
+/// could redirect a Debtor's money, such as payment instructions (G6), or to
+/// take or delete all the Business's data (H5).
 pub const FRESH_LOGIN: time::Duration = time::Duration::minutes(10);
 
 /// The Owner, logged in within [`FRESH_LOGIN`]; anyone else is refused
@@ -201,7 +204,7 @@ impl FromRequestParts<AppState> for ApiFreshOwner {
             problems: Vec::new(),
         };
         if member.role != Role::Owner {
-            return Err(refused("Only the Owner can change this."));
+            return Err(refused("Only the Owner can do this."));
         }
         let session = session_cookie(parts).ok_or(ApiError::NotLoggedIn)?;
         let started = state
@@ -212,7 +215,7 @@ impl FromRequestParts<AppState> for ApiFreshOwner {
             .ok_or(ApiError::NotLoggedIn)?;
         if state.clock.now() - started > FRESH_LOGIN {
             return Err(refused(
-                "Log in again to change this: it can redirect your Debtors' payments, so it needs a fresh login.",
+                "Log in again to do this: it needs a login from the last 10 minutes, so nobody with a stolen session can.",
             ));
         }
         Ok(Self(member))

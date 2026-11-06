@@ -79,7 +79,13 @@ pub struct DebtorSummary {
     /// The last message approved or sent, if any; never a discarded,
     /// expired or blocked one.
     pub last_message: Option<LastMessage>,
+    /// When a reminder to the Contact's address last bounced temporarily,
+    /// within [`SOFT_BOUNCE_SHOWN`] (F4).
+    pub soft_bounce_at: Option<time::OffsetDateTime>,
 }
+
+/// How long a temporary bounce shows on the dashboard.
+pub const SOFT_BOUNCE_SHOWN: time::Duration = time::Duration::days(7);
 
 /// A Debtor's last message, sent by Balanse or logged as sent by hand.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -226,7 +232,10 @@ impl Debtors {
                            join outbox_messages m on m.tenant_id = r.tenant_id and m.id = r.message_id
                            where r.tenant_id = d.tenant_id and r.debtor_id = d.id
                              and m.status = 'draft') as drafts_waiting,
-                          last.status as last_status, last.at as last_at
+                          last.status as last_status, last.at as last_at,
+                          (select max(b.at) from bounces b
+                           where b.tenant_id = d.tenant_id and b.debtor_id = d.id and b.kind = 'soft_bounce'
+                             and b.address = lower(trim(d.contact_email)) and b.at > $2) as soft_bounce_at
                    from debtors d
                    left join lateral (
                        select m.status, coalesce(m.sent_at, m.approved_at, m.created_at) as at
@@ -244,7 +253,7 @@ impl Debtors {
                )
                select id as "id!", business_name as "business_name!", contact_name as "contact_name!",
                       state as "state!", promised_until, open_debts as "open_debts!", oldest_due,
-                      drafts_waiting as "drafts_waiting!", last_status, last_at
+                      drafts_waiting as "drafts_waiting!", last_status, last_at, soft_bounce_at
                from summary
                order by case
                             when state in ('paused', 'payment_claimed', 'needs_call', 'disputed', 'bounced')
@@ -254,6 +263,7 @@ impl Debtors {
                         end,
                         oldest_due nulls last, lower(business_name), id"#,
             business.as_uuid(),
+            self.clock.now() - SOFT_BOUNCE_SHOWN,
         )
         .fetch_all(&self.pool)
         .await?;
@@ -272,6 +282,7 @@ impl Debtors {
                     .last_status
                     .zip(row.last_at)
                     .map(|(status, at)| LastMessage { status, at }),
+                soft_bounce_at: row.soft_bounce_at,
             })
             .collect())
     }

@@ -43,4 +43,8 @@ last_message_status: string | null,
 /**
  * When the last message was sent, approved or logged, RFC 3339.
  */
-last_message_at: string | null, };
+last_message_at: string | null, 
+/**
+ * When a reminder last bounced temporarily, in the past week, RFC 3339.
+ */
+soft_bounce_at: string | null, };

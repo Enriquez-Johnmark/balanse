@@ -168,3 +168,20 @@ async fn f4_changing_the_contacts_address_starts_reminders_again(pool: PgPool) {
         ("Lito Santos", "lito@new.test")
     );
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn f4_a_temporary_bounce_shows_on_the_dashboard_for_a_week(pool: PgPool) {
+    let clock = clock();
+    let (business, _) = sent(&pool, &clock).await;
+    let debtors = balanse::balanse::debtors::Debtors::new(pool.clone(), clock.clone());
+    Bounces::new(pool.clone(), clock.clone())
+        .record(&bounced("re_1", false))
+        .await
+        .unwrap();
+
+    let shown = debtors.list(business).await.unwrap()[0].soft_bounce_at;
+    clock.advance(Duration::days(8));
+    let later = debtors.list(business).await.unwrap()[0].soft_bounce_at;
+
+    assert_eq!((shown.is_some(), later), (true, None));
+}

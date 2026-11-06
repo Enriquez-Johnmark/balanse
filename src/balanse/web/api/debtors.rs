@@ -50,6 +50,8 @@ pub struct DebtorRow {
     pub last_message_status: Option<String>,
     /// When the last message was sent, approved or logged, RFC 3339.
     pub last_message_at: Option<String>,
+    /// When a reminder last bounced temporarily, in the past week, RFC 3339.
+    pub soft_bounce_at: Option<String>,
 }
 
 async fn list(
@@ -70,6 +72,7 @@ async fn list(
                 drafts_waiting: row.drafts_waiting,
                 last_message_status: row.last_message.as_ref().map(|last| last.status.clone()),
                 last_message_at: row.last_message.map(|last| rfc3339(last.at)),
+                soft_bounce_at: row.soft_bounce_at.map(rfc3339),
             })
             .collect(),
     ))
@@ -167,6 +170,22 @@ pub struct DebtorPage {
     pub replies: Vec<ReplyRow>,
     /// The claim of payment waiting for the Owner's answer, if any.
     pub claim: Option<ClaimRow>,
+    /// Its bounces and complaints, newest first (F4).
+    pub bounces: Vec<BounceRow>,
+}
+
+/// One bounce or complaint on a Debtor's page.
+#[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS), ts(export))]
+pub struct BounceRow {
+    /// The address that failed.
+    pub address: String,
+    /// `bounce`, `soft_bounce` or `complaint`.
+    pub kind: String,
+    /// The provider's explanation; untrusted, shown as text.
+    pub reason: Option<String>,
+    /// When it was reported, RFC 3339.
+    pub at: String,
 }
 
 /// A claim of payment waiting for the Owner's answer (G2).
@@ -276,6 +295,15 @@ async fn page(
     .fetch_all(&state.pool)
     .await
     .map_err(ApiError::internal)?;
+    let bounces = sqlx::query!(
+        "select address, kind, reason, at from bounces
+         where tenant_id = $1 and debtor_id = $2 order by at desc limit 10",
+        business.as_uuid(),
+        id,
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(ApiError::internal)?;
     let claim = match sqlx::query!(
         "select id, claimed_at from claims where tenant_id = $1 and debtor_id = $2 and settled_at is null
          order by claimed_at desc limit 1",
@@ -352,6 +380,15 @@ async fn page(
             })
             .collect(),
         claim,
+        bounces: bounces
+            .into_iter()
+            .map(|row| BounceRow {
+                address: row.address,
+                kind: row.kind,
+                reason: row.reason,
+                at: rfc3339(row.at),
+            })
+            .collect(),
     }))
 }
 

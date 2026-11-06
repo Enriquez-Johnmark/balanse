@@ -27,16 +27,16 @@ import { useUpdateDebtor } from "@/features/debtors/queries"
 export function EditDebtorDialog({ debtor }: { debtor: DebtorPage }) {
   const [isOpen, setIsOpen] = useState(false)
   const update = useUpdateDebtor(debtor.id)
-  const form = useForm<NewDebtor>({
-    resolver: zodResolver(debtorSchema),
-    values: {
-      business_name: debtor.business_name,
-      contact_name: debtor.contact_name,
-      contact_email: debtor.contact_email,
-      contact_mobile: debtor.contact_mobile ?? "",
-      language: debtor.language,
-    },
+  // The stored details, read each time the dialog opens; a refetch while
+  // it is open never overwrites what the Owner is typing.
+  const stored = (): NewDebtor => ({
+    business_name: debtor.business_name,
+    contact_name: debtor.contact_name,
+    contact_email: debtor.contact_email,
+    contact_mobile: debtor.contact_mobile ?? "",
+    language: debtor.language,
   })
+  const form = useForm<NewDebtor>({ resolver: zodResolver(debtorSchema), defaultValues: stored() })
   const save = (values: NewDebtor) =>
     update.mutate(values, {
       onSuccess: () => {
@@ -49,10 +49,8 @@ export function EditDebtorDialog({ debtor }: { debtor: DebtorPage }) {
       open={isOpen}
       onOpenChange={(open) => {
         setIsOpen(open)
-        if (!open) {
-          update.reset()
-          form.reset()
-        }
+        if (open) form.reset(stored())
+        else update.reset()
       }}
     >
       <DialogTrigger render={<Button variant="outline" />}>Edit details</DialogTrigger>

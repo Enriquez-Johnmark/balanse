@@ -310,3 +310,22 @@ pub async fn sent(pool: &PgPool, clock: &Arc<FixedClock>) -> (BusinessId, balans
     .unwrap();
     (business, debtor)
 }
+
+/// `GET path` with `cookie`: the status, the content-disposition header and
+/// the body.
+pub async fn download(app: &axum::Router, path: &str, cookie: &str) -> (u16, String, String) {
+    use tower::ServiceExt;
+    let request = axum::http::Request::get(path)
+        .header("cookie", cookie)
+        .body(axum::body::Body::empty())
+        .unwrap();
+    let response = app.clone().oneshot(request).await.unwrap();
+    let status = response.status().as_u16();
+    let disposition = response
+        .headers()
+        .get("content-disposition")
+        .map(|value| value.to_str().unwrap().to_owned())
+        .unwrap_or_default();
+    let bytes = axum::body::to_bytes(response.into_body(), 1 << 20).await.unwrap();
+    (status, disposition, String::from_utf8(bytes.to_vec()).unwrap())
+}

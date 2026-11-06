@@ -200,20 +200,13 @@ async fn template(app: &axum::Router, cookie: &str) -> String {
 
 /// `GET path` with `cookie`: the file name it is saved as, and its text.
 async fn file(app: &axum::Router, path: &str, cookie: &str) -> (String, String) {
-    use tower::ServiceExt;
-    let request = axum::http::Request::get(path)
-        .header("cookie", cookie)
-        .body(axum::body::Body::empty())
-        .unwrap();
-    let response = app.clone().oneshot(request).await.unwrap();
-    assert_eq!(response.status().as_u16(), 200, "{path}");
-    let disposition = response.headers()["content-disposition"].to_str().unwrap().to_owned();
+    let (status, disposition, body) = common::download(app, path, cookie).await;
+    assert_eq!(status, 200, "{path}");
     let name = disposition
         .split("filename=\"")
         .nth(1)
         .unwrap()
         .trim_end_matches('"')
         .to_owned();
-    let bytes = axum::body::to_bytes(response.into_body(), 1 << 20).await.unwrap();
-    (name, String::from_utf8(bytes.to_vec()).unwrap())
+    (name, body)
 }

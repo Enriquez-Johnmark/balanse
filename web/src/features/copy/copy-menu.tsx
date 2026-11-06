@@ -42,7 +42,7 @@ export function CopyMenu({ messageId }: { messageId: string }) {
         <CopyIcon data-icon="inline-start" />
         Copy and open
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
+      <DropdownMenuContent align="start" className="min-w-64">
         {texts.isError ? (
           <p role="alert" className="max-w-72 px-1.5 py-1 text-sm text-destructive">
             {texts.error.message}

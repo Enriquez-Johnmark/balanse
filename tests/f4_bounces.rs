@@ -129,3 +129,42 @@ async fn f4_a_late_bounce_for_a_replaced_address_stops_nothing(pool: PgPool) {
         (Recorded::Noted, "active")
     );
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn f4_changing_the_contacts_address_starts_reminders_again(pool: PgPool) {
+    let clock = clock();
+    let (business, debtor) = sent(&pool, &clock).await;
+    let debtors = balanse::balanse::debtors::Debtors::new(pool.clone(), clock.clone());
+    Bounces::new(pool.clone(), clock.clone())
+        .record(&bounced("re_1", true))
+        .await
+        .unwrap();
+    let input = |email: &str| balanse::balanse::debtors::DebtorInput {
+        business_name: "Santos Trading".to_owned(),
+        contact_name: "Lito Santos".to_owned(),
+        contact_email: email.to_owned(),
+        contact_mobile: String::new(),
+        language: "english".to_owned(),
+    };
+
+    // Changing only the name keeps it stopped; a new address starts it again.
+    debtors
+        .update(business, debtor, &input("LITO@santos.test"), "ana@reyes.test")
+        .await
+        .unwrap();
+    let same_address = state(&pool, debtor).await;
+    debtors
+        .update(business, debtor, &input("lito@new.test"), "ana@reyes.test")
+        .await
+        .unwrap();
+
+    assert_eq!(
+        (same_address.as_str(), state(&pool, debtor).await.as_str()),
+        ("bounced", "active")
+    );
+    let changed = debtors.get(business, debtor).await.unwrap();
+    assert_eq!(
+        (changed.contact_name.as_str(), changed.contact_email.as_str()),
+        ("Lito Santos", "lito@new.test")
+    );
+}

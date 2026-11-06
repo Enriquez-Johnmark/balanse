@@ -20,7 +20,7 @@ use crate::balanse::web::AppState;
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
         .route("/api/debtors", get(list).post(create))
-        .route("/api/debtors/{id}", get(page))
+        .route("/api/debtors/{id}", get(page).put(update))
         .route("/api/debtors/{id}/debts", post(add_debt))
         .route("/api/debtors/{id}/outcome", post(outcome))
         .route("/api/debts/{id}/amount", post(change_amount))
@@ -113,6 +113,29 @@ async fn create(
     };
     let id = state.debtors.create(business, &input).await.map_err(debtor_error)?;
     Ok((StatusCode::CREATED, Json(Created { id: id.as_uuid() })))
+}
+
+/// Changes a Debtor and its Contact; a new address ends a stop after a
+/// bounce (F4).
+async fn update(
+    State(state): State<AppState>,
+    ApiMember(member): ApiMember,
+    ApiPath(id): ApiPath<Uuid>,
+    ApiJson(form): ApiJson<NewDebtor>,
+) -> Result<StatusCode, ApiError> {
+    let input = DebtorInput {
+        business_name: form.business_name,
+        contact_name: form.contact_name,
+        contact_email: form.contact_email,
+        contact_mobile: form.contact_mobile,
+        language: form.language,
+    };
+    state
+        .debtors
+        .update(member.tenant, id.into(), &input, &member.email)
+        .await
+        .map_err(debtor_error)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// One Debtor's page: its Contact, its Debts, its recent reminders and
@@ -449,6 +472,7 @@ fn debtor_error(err: DebtorError) -> ApiError {
         DebtorError::Invalid(problems) => ApiError::problems("Please check the Debtor's details.", problems),
         DebtorError::NotFound => ApiError::NotFound,
         DebtorError::Database(err) => ApiError::internal(err),
+        DebtorError::Outbox(err) => ApiError::internal(err),
     }
 }
 

@@ -191,3 +191,41 @@ async fn a2_another_business_gets_not_found_for_every_debtor_endpoint(pool: PgPo
 
     assert_eq!(statuses, [StatusCode::NOT_FOUND; 4]);
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn f4_the_owner_changes_a_debtors_contact(pool: PgPool) {
+    let clock = clock();
+    business(&pool, &clock).await;
+    let app = app(&pool, &clock);
+    let (cookie, id) = reyes(&app, &pool).await;
+    let mut changed = debtor();
+    changed["contact_email"] = json!("lito@new.test");
+    let mut invalid = debtor();
+    invalid["contact_email"] = json!("not an address");
+
+    let saved = call(&app, "PUT", &format!("/api/debtors/{id}"), Some(changed), Some(&cookie)).await;
+    let refused = call(&app, "PUT", &format!("/api/debtors/{id}"), Some(invalid), Some(&cookie)).await;
+
+    assert_eq!(
+        (saved.status, refused.status),
+        (StatusCode::NO_CONTENT, StatusCode::UNPROCESSABLE_ENTITY)
+    );
+    let page = call(&app, "GET", &format!("/api/debtors/{id}"), None, Some(&cookie)).await;
+    assert_eq!(page.body["contact_email"], "lito@new.test");
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn a2_another_business_cant_change_a_debtor(pool: PgPool) {
+    let clock = clock();
+    business(&pool, &clock).await;
+    let app = app(&pool, &clock);
+    let (_, id) = reyes(&app, &pool).await;
+    create_business(&pool, clock.as_ref(), "Other Studio", "cara@other.test")
+        .await
+        .unwrap();
+    let other = log_in(&app, &pool, "cara@other.test").await;
+
+    let answer = call(&app, "PUT", &format!("/api/debtors/{id}"), Some(debtor()), Some(&other)).await;
+
+    assert_eq!(answer.status, StatusCode::NOT_FOUND);
+}

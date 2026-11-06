@@ -6,10 +6,15 @@ use std::sync::Arc;
 
 use sqlx::PgPool;
 
+use serde_json::json;
+
 use super::businesses::BusinessId;
+use super::reminders::redraft_waiting;
 use crate::engine::accounts::is_email_address;
+use crate::engine::audit::{self, AuditEvent};
 use crate::engine::clock::Clock;
 use crate::engine::ids::id_type;
+use crate::engine::outbox::{Outbox, OutboxError};
 
 id_type!(
     /// One Debtor of a Business.
@@ -97,6 +102,9 @@ pub enum DebtorError {
     /// The database failed.
     #[error(transparent)]
     Database(#[from] sqlx::Error),
+    /// Redrafting the Debtor's waiting reminders failed.
+    #[error(transparent)]
+    Outbox(#[from] OutboxError),
 }
 
 /// The Debtors of each Business.
@@ -104,12 +112,17 @@ pub enum DebtorError {
 pub struct Debtors {
     pool: PgPool,
     clock: Arc<dyn Clock>,
+    outbox: Outbox,
 }
 
 impl Debtors {
     /// Debtors in `pool`.
     pub fn new(pool: PgPool, clock: Arc<dyn Clock>) -> Self {
-        Self { pool, clock }
+        Self {
+            outbox: Outbox::new(pool.clone(), clock.clone()),
+            pool,
+            clock,
+        }
     }
 
     /// Adds a Debtor to `business`.
@@ -134,6 +147,66 @@ impl Debtors {
         .execute(&self.pool)
         .await?;
         Ok(id)
+    }
+
+    /// Changes one of `business`'s Debtors and its Contact. A new address
+    /// ends a stop after a bounce (F4), and waiting reminders are drafted
+    /// again for it. `by` names who did it in the audit log.
+    pub async fn update(
+        &self,
+        business: BusinessId,
+        id: DebtorId,
+        input: &DebtorInput,
+        by: &str,
+    ) -> Result<(), DebtorError> {
+        let input = check(input)?;
+        let now = self.clock.now();
+        let mut tx = self.pool.begin().await?;
+        let before = sqlx::query_scalar!(
+            "select contact_email from debtors where tenant_id = $1 and id = $2 for update",
+            business.as_uuid(),
+            id.as_uuid(),
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or(DebtorError::NotFound)?;
+        let new_address = !before.trim().eq_ignore_ascii_case(&input.contact_email);
+        sqlx::query!(
+            "update debtors
+             set business_name = $3, contact_name = $4, contact_email = $5, contact_mobile = $6, language = $7,
+                 state = case when $8 and state = 'bounced' then 'active' else state end,
+                 updated_at = $9
+             where tenant_id = $1 and id = $2",
+            business.as_uuid(),
+            id.as_uuid(),
+            input.business_name,
+            input.contact_name,
+            input.contact_email,
+            input.contact_mobile,
+            input.language,
+            new_address,
+            now,
+        )
+        .execute(&mut *tx)
+        .await?;
+        audit::record(
+            &mut *tx,
+            &AuditEvent {
+                tenant: business,
+                at: now,
+                actor: by,
+                action: "debtor.changed",
+                subject_type: "debtor",
+                subject_id: id.as_uuid(),
+                details: json!({ "new_address": new_address }),
+            },
+        )
+        .await?;
+        tx.commit().await?;
+        if new_address {
+            redraft_waiting(&self.outbox, &self.pool, business, id, by).await?;
+        }
+        Ok(())
     }
 
     /// Every Debtor of `business`, in the dashboard's order (H1): those

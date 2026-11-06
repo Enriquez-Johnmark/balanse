@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update debtors\n             set business_name = $3, contact_name = $4, contact_email = $5, contact_mobile = $6, language = $7,\n                 state = case when $8 and state = 'bounced' then 'active' else state end,\n                 updated_at = $9\n             where tenant_id = $1 and id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6c4e5fc7fc722b6458e76e8927021802003fc70c7b3d4aa154482e577c001206"
+}

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select contact_email from debtors where tenant_id = $1 and id = $2 for update",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "contact_email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "debtors",
+            "name": "contact_email"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "29f4951d78d5f36ff52c93eefdeff53eca600a67434c79c3546022f871a111fe"
+}

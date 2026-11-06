@@ -27,7 +27,8 @@ export function useDownloadData() {
       link.href = url
       link.download = `balanse-data-${todayInManila()}.json`
       link.click()
-      URL.revokeObjectURL(url)
+      // Some browsers read the file after click() returns.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
     },
   })
 }

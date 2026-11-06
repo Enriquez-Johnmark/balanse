@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select message_id from reminders where tenant_id = $1 and debtor_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "message_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "reminders",
+            "name": "message_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "955754b76dc061f858a25f739ec4811728a661fcb84c3a8cfe35a7b9b87e85a9"
+}

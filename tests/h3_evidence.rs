@@ -7,6 +7,7 @@ mod common;
 
 use balanse::balanse::evidence::{Entry, Evidence, to_csv};
 use balanse::balanse::outcomes::Outcomes;
+use balanse::balanse::retention::Retention;
 use balanse::engine::clock::Clock;
 use common::{clock, sent};
 use sqlx::PgPool;
@@ -120,4 +121,72 @@ async fn h3_the_owner_downloads_a_debtors_evidence_log(pool: PgPool) {
         "{body}"
     );
     assert_eq!(other, 404, "another Business can't download it (A2)");
+}
+
+async fn count(pool: &PgPool, table: &str) -> i64 {
+    // `table` is one of this file's own constants.
+    sqlx::query_scalar(sqlx::AssertSqlSafe(format!("select count(*) from {table}")))
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn h3_a_debtor_settled_over_a_year_ago_is_deleted_with_its_messages(pool: PgPool) {
+    let clock = clock();
+    let (business, debtor) = sent(&pool, &clock).await;
+    Outcomes::new(pool.clone(), clock.clone())
+        .paid(business, debtor, "ana@reyes.test")
+        .await
+        .unwrap();
+    let retention = Retention::new(pool.clone(), clock.clone());
+
+    clock.advance(time::Duration::days(364));
+    retention.sweep().await.unwrap();
+    let kept = (count(&pool, "debtors").await, count(&pool, "outbox_messages").await);
+    clock.advance(time::Duration::days(2));
+    retention.sweep().await.unwrap();
+
+    assert_eq!(kept, (1, 1));
+    assert_eq!(
+        (
+            count(&pool, "debtors").await,
+            count(&pool, "debts").await,
+            count(&pool, "outbox_messages").await
+        ),
+        (0, 0, 0)
+    );
+}
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn h3_an_old_closed_debt_goes_while_an_open_one_keeps_the_debtor(pool: PgPool) {
+    let clock = clock();
+    let (business, debtor) = sent(&pool, &clock).await;
+    sqlx::query("update debts set status = 'paid', closed_at = $1")
+        .bind(clock.now() - time::Duration::days(400))
+        .execute(&pool)
+        .await
+        .unwrap();
+    balanse::balanse::debts::Debts::new(pool.clone(), clock.clone())
+        .create(
+            business,
+            debtor,
+            &balanse::balanse::debts::DebtInput {
+                invoice_number: "INV-2".to_owned(),
+                invoice_date: "2026-10-01".to_owned(),
+                amount: "₱2,000".to_owned(),
+                due_date: "2026-11-01".to_owned(),
+                note: String::new(),
+            },
+        )
+        .await
+        .unwrap();
+
+    Retention::new(pool.clone(), clock.clone()).sweep().await.unwrap();
+
+    let left: Vec<String> = sqlx::query_scalar("select invoice_number from debts")
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!((left, count(&pool, "debtors").await), (vec!["INV-2".to_owned()], 1));
 }

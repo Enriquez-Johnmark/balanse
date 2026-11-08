@@ -4,6 +4,10 @@ Every owner-approved decision, newest first, with the date it was made. Decision
 
 Decisions made before this repository existed (the product family, the name, licences, the engine) are in [Kompleto's decision log](https://github.com/Enriquez-Johnmark/kompleto/blob/main/docs/decisions.md), 2026-10-23.
 
+## 2026-11-08
+
+- **The model never says how long an invoice is overdue.** In the showcase, Claude wrote that an invoice was "overdue na ng ilang buwan" (overdue for several months) when it was about one month late: it is told only whether an invoice is overdue, so any length is a guess, and the content guard blocks numbers and dates but not words like these. The drafting prompt now says so (owner: "yes, add the line to Balanse's prompt").
+
 ## 2026-10-25
 
 - **The free-tool checks move to before pilots.** First Circle Invoice is a waitlist and PayMongo Invoices a beta request, so waiting on them would hold up the build for weeks at no saving (M2 costs only build time, ₱0). M2 starts now; the checks of First Circle Invoice, Lista and PayMongo Invoices are due before pilots, as the spec already said. The risk accepted: if a check later shows a free tool already does this, M2's work may be wasted (owner: "yes").

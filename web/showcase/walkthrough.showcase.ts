@@ -43,6 +43,10 @@ test("walkthrough", async ({ browser }, testInfo) => {
   const card = page.locator("[data-slot=card]", { hasText: "Cruz & Co. Events" }).first()
   await pointAt(page, card.getByText(/Paalala po/))
   await say(page, "In Taglish or English, always polite, never a threat.")
+  await say(
+    page,
+    "Claude writes the subject, opening and closing; Balanse adds the invoices and amounts."
+  )
   await pointAt(page, card.getByText(/\/d\/[0-9a-f]+/))
   await say(page, "Each one links to the Debtor's own private page.")
   await press(page, card.getByRole("button", { name: "Copy and open" }))

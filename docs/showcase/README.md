@@ -2,6 +2,8 @@
 
 Screenshots and a two-minute captioned walkthrough of a demo Business, Reyes Creative Studio, a small design studio chasing eight clients for unpaid invoices. Reminders are drafted, one is approved, one client says they've paid with a GCash screenshot, one disputes, one promised to pay, and the Owner sent one reminder by hand on Viber.
 
+The reminders' wording is Claude's (Haiku, with the owner's API key, made on 2026-11-08), drafted the way the live scheduler drafts; Balanse itself inserts the invoices, amounts and the link to the Debtor's page. Without a key, the same demo uses the fixed templates.
+
 | File | Shows |
 |---|---|
 | `walkthrough.mp4` | The whole loop in about two minutes: the dashboard, drafts in Taglish and English, copy and open, review and approve, the client's own page and "I've paid", confirming the payment, the evidence log, spreadsheet import and settings |
@@ -32,5 +34,7 @@ cargo run -- serve
 # in another terminal; the address must be new to this database:
 SHOWCASE_EMAIL=ana@reyes-creative.example pnpm --dir web showcase
 ```
+
+With the API key in `.env` (or `OWNER_ANTHROPIC_API_KEY`), Claude words the drafts.
 
 Making the video needs `ffmpeg` on the path.

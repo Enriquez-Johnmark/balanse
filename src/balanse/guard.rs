@@ -55,6 +55,30 @@ const GROUPS: &[Group] = &[
         ],
     },
     Group {
+        // The model is told only whether an invoice is overdue, so any
+        // length it gives is a guess. "araw" (day) is left out: "Magandang
+        // araw" is a greeting.
+        reason: "it says how long an invoice is overdue, which only you know",
+        owner_may_write: true,
+        terms: &[
+            "week",
+            "weeks",
+            "month",
+            "months",
+            "year",
+            "years",
+            "long overdue",
+            "for a while",
+            "for some time",
+            "linggo",
+            "buwan",
+            "taon",
+            "ilang araw",
+            "matagal",
+            "matagal na",
+        ],
+    },
+    Group {
         reason: "it mentions legal action, which only you may write",
         owner_may_write: true,
         terms: &[
@@ -287,6 +311,22 @@ mod tests {
 
         assert_eq!(check(text, &[], Writer::Owner), None);
         assert!(check(text, &[], Writer::Model).is_some());
+    }
+
+    #[test]
+    fn d5_only_the_owner_may_say_how_long_an_invoice_is_overdue() {
+        // The model knows only whether an invoice is overdue, so a length is a guess.
+        for text in [
+            "Ito po ay overdue na ng ilang buwan.",
+            "This invoice has been unpaid for several months.",
+            "It has been overdue for two weeks now.",
+            "Matagal na po itong hindi nababayaran.",
+            "Isang linggo na po itong lampas sa due date.",
+            "This is now long overdue.",
+        ] {
+            assert!(check(text, &[], Writer::Model).is_some(), "{text}");
+            assert_eq!(check(text, &[], Writer::Owner), None, "{text}");
+        }
     }
 
     #[test]

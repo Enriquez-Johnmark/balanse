@@ -18,8 +18,8 @@ anyhow = "1.0.104"
 axum = { version = "0.8.9", features = ["multipart"] }
 dotenvy = "0.15.7"
 # The engine: draft, approve, send exactly once, stop on reply, track.
-# Pinned to the commit tagged v0.4.4.
-nudgewright = { version = "0.4.4", git = "https://github.com/Enriquez-Johnmark/nudgewright", rev = "e0c3db4a578f12a7e17edf385027ab69b9c3254e" }
+# Pinned to the commit tagged v0.4.5.
+nudgewright = { version = "0.4.5", git = "https://github.com/Enriquez-Johnmark/nudgewright", rev = "2855aa69ecde4b3ffc23ba869c2b4de5e8cd9846" }
 percent-encoding = "2.3.2"
 reqwest = { version = "0.13.5", features = ["json"] }
 secrecy = "0.10.3"

@@ -140,3 +140,35 @@ async fn a1_a_post_from_another_site_is_refused(pool: PgPool) {
 
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
+
+#[sqlx::test(migrator = "balanse::MIGRATOR")]
+async fn a1_parallel_requests_still_get_at_most_five_login_emails(pool: PgPool) {
+    use balanse::balanse::presend::BalanseChecks;
+    use balanse::engine::accounts::{LoginLink, LoginOutcome, Logins};
+    use balanse::engine::mail::Email;
+
+    let clock = clock();
+    business(&pool, &clock).await;
+    let logins = Logins::new(pool.clone(), clock.clone());
+    let checks = BalanseChecks::for_approval(pool.clone(), common::links(&pool, &clock));
+    let compose = |link: &LoginLink<'_>| Email {
+        to_address: link.to_address.to_owned(),
+        from_name: "Balanse".to_owned(),
+        reply_to: None,
+        subject: "Your Balanse login link".to_owned(),
+        body_text: format!("Log in: http://balanse.test/login/{}", link.token),
+    };
+
+    let requests: Vec<_> = (0..12)
+        .map(|_| {
+            let (logins, checks) = (logins.clone(), checks.clone());
+            tokio::spawn(async move { logins.send_link("ana@reyes.test", compose, &checks).await.unwrap() })
+        })
+        .collect();
+    let mut sent = 0;
+    for request in requests {
+        sent += usize::from(request.await.unwrap() == LoginOutcome::Sent);
+    }
+
+    assert_eq!(sent, 5);
+}

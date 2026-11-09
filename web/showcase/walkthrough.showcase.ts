@@ -41,7 +41,8 @@ test("walkthrough", async ({ browser }, testInfo) => {
   await page.getByText(/^Select all/).waitFor()
   await say(page, "Each weekday morning, Balanse drafts the reminders that are due.")
   const card = page.locator("[data-slot=card]", { hasText: "Cruz & Co. Events" }).first()
-  await pointAt(page, card.getByText(/Paalala po/))
+  // The greeting is Balanse's own; the words around it are the model's.
+  await pointAt(page, card.getByText(/Hi Mara/))
   await say(page, "In Taglish or English, always polite, never a threat.")
   await say(
     page,

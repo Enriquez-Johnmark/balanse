@@ -2,7 +2,7 @@
 
 Screenshots and a two-minute captioned walkthrough of a demo Business, Reyes Creative Studio, a small design studio chasing eight clients for unpaid invoices. Reminders are drafted, one is approved, one client says they've paid with a GCash screenshot, one disputes, one promised to pay, and the Owner sent one reminder by hand on Viber.
 
-The reminders' wording is Claude's (Haiku, with the owner's API key, made on 2026-11-08), drafted the way the live scheduler drafts; Balanse itself inserts the invoices, amounts and the link to the Debtor's page. Without a key, the same demo uses the fixed templates.
+The reminders' wording is Claude's (Sonnet, the model the blind Taglish test chose, with the owner's API key, made on 2026-11-09), drafted the way the live scheduler drafts; Balanse itself inserts the invoices, amounts and the link to the Debtor's page. Without a key, the same demo uses the fixed templates.
 
 | File | Shows |
 |---|---|

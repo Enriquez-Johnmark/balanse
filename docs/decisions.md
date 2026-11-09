@@ -4,6 +4,10 @@ Every owner-approved decision, newest first, with the date it was made. Decision
 
 Decisions made before this repository existed (the product family, the name, licences, the engine) are in [Kompleto's decision log](https://github.com/Enriquez-Johnmark/kompleto/blob/main/docs/decisions.md), 2026-10-23.
 
+## 2026-11-09
+
+- **Claude Sonnet words the reminders.** A blind Taglish test, as Kompleto ran it: Haiku and Sonnet each wrote 10 made-up reminders (all four steps, every overdue range) with Balanse's exact request, and a blind judge (Claude Opus, told to judge as a small Manila business chasing clients) compared each pair twice with the order swapped. Sonnet 9, Haiku 1, no ties, every verdict the same in both orders. Haiku often greeted twice ("Hi Lito," then "Hi Lito, magandang araw po!") and overused "po". Sonnet costs about US$0.003 a reminder, under US$1 a month at pilot scale (owner: "Sonnet"). The default `LLM_MODEL` is now `claude-sonnet-5-5`; the prototype is deleted.
+
 ## 2026-11-08
 
 - **The model never says how long an invoice is overdue.** In the showcase, Claude wrote that an invoice was "overdue na ng ilang buwan" (overdue for several months) when it was 37 days late: it is told only a rough range (here "up to three months", E1), which a stated length can overstate, and the content guard blocks numbers and dates but not words like these. (Corrected 2026-11-09: this entry first said the model is told only whether an invoice is overdue.) The drafting prompt now says so (owner: "yes, add the line to Balanse's prompt"). The content guard enforces it in code too: wording from the model that says how long ("months", "weeks", "buwan", "linggo", "matagal"…) falls back to the template; the owner may still write it (owner: "yes, add the duration words to the guard").

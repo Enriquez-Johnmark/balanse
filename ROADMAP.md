@@ -11,7 +11,7 @@ Where Balanse stands and what comes next, in one page. Dated facts come from `do
 | Engine | Nudgewright v0.3.0 (accounts, sheets), v0.4.0 (held messages don't expire), v0.4.1 (when a session started), v0.4.2 (calamine security fix), v0.4.3 (blank CSV rows), v0.4.4 (forgetting finished messages), v0.4.5 (parallel login requests stay within the limits) | Done |
 | M1 | Sign-up and login, Debtors and invoices by form, the schedule, template Drafts, approval, sending once within sending hours, replies pausing reminders; the React app | Done (2026-10-24) |
 | M2 | The Debtor's page: signed 60-day link, open invoices and payment instructions, "I've paid" with proof upload, "I dispute this", "Stop emailing me"; the Owner confirms or rejects claims; payment instructions need a fresh login | Done (2026-11-05), code-reviewed |
-| M3 | AI-worded Drafts (Claude Haiku) with template fallback, and the content guard | Done (2026-11-05), code-reviewed; AI wording turns on with an API key |
+| M3 | AI-worded Drafts (Claude Sonnet since 2026-11-09) with template fallback, and the content guard | Done (2026-11-05), code-reviewed; AI wording turns on with an API key |
 | M4 | Spreadsheet import, the dashboard, "copy and open" for Viber, Messenger, WhatsApp and SMS | Done (2026-11-05), code-reviewed |
 | M5 | Bounces and complaints, the evidence log and its export, leaving, retention | Done (2026-11-06), code-reviewed |
 | M6 | Deployment, once `balanseapp.com` is bought | |

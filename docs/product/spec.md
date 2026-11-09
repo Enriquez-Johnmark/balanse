@@ -56,7 +56,7 @@ Status: **Phase 3 complete (2026-10-24).** Built up round by round; everything u
 
 ### AI and tone (Round 1, 2026-10-24)
 
-- The same setup as Kompleto: **Claude Haiku 5.5** behind a small client, an optional API key, and **fixed templates as the fallback**, so reminders still go out if the AI is unavailable.
+- The same setup as Kompleto: **Claude Sonnet 5.5** behind a small client, an optional API key, and **fixed templates as the fallback**, so reminders still go out if the AI is unavailable. (Haiku 5.5 until 2026-11-09, when a blind Taglish test chose Sonnet: `docs/decisions.md`.)
 - **The model writes only the wording:** a subject, an opening and a closing. Balanse inserts the invoice list, amounts, dates, the owner's business name and the link, so the model can't garble or invent facts.
 - **The model sees only:** the Debtor's business name and the Contact's first name, the number of open invoices, how overdue they are as a range, the language and the reminder step. **Never:** amounts, invoice numbers, notes or replies.
 - **Language** per Debtor: Taglish or English. **Tone** steps up from friendly to polite to firm-but-polite, and never threatens.

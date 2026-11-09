@@ -55,8 +55,8 @@ const GROUPS: &[Group] = &[
         ],
     },
     Group {
-        // The model is told only whether an invoice is overdue, so any
-        // length it gives is a guess. "araw" (day) is left out: "Magandang
+        // The model is told only a rough overdue range, so a length it
+        // states can overstate it. "araw" (day) is left out: "Magandang
         // araw" is a greeting.
         reason: "it says how long an invoice is overdue, which only you know",
         owner_may_write: true,
@@ -315,7 +315,7 @@ mod tests {
 
     #[test]
     fn d5_only_the_owner_may_say_how_long_an_invoice_is_overdue() {
-        // The model knows only whether an invoice is overdue, so a length is a guess.
+        // The model knows only a rough overdue range, so a length can overstate it.
         for text in [
             "Ito po ay overdue na ng ilang buwan.",
             "This invoice has been unpaid for several months.",

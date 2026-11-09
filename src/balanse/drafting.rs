@@ -110,7 +110,7 @@ Write in the requested language. Taglish means natural Tagalog-English as Filipi
 with \"po\" where respectful. The step sets the tone: heads_up and first are friendly, second is polite, third is \
 firm but polite and asks when payment can be expected. Never threaten, blame, shame or mention legal action, \
 lawyers, courts, the police or anyone else. Never include links, email addresses, numbers, amounts or dates. \
-Never say how long an invoice has been unpaid or overdue: you are told only whether it is.";
+Never say how long an invoice has been unpaid or overdue: the overdue range you are given is only rough.";
 
 /// The shape the model must answer in.
 #[derive(Deserialize)]

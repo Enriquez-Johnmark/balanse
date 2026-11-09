@@ -6,7 +6,7 @@ Decisions made before this repository existed (the product family, the name, lic
 
 ## 2026-11-08
 
-- **The model never says how long an invoice is overdue.** In the showcase, Claude wrote that an invoice was "overdue na ng ilang buwan" (overdue for several months) when it was about one month late: it is told only whether an invoice is overdue, so any length is a guess, and the content guard blocks numbers and dates but not words like these. The drafting prompt now says so (owner: "yes, add the line to Balanse's prompt"). The content guard enforces it in code too: wording from the model that says how long ("months", "weeks", "buwan", "linggo", "matagal"…) falls back to the template; the owner may still write it (owner: "yes, add the duration words to the guard").
+- **The model never says how long an invoice is overdue.** In the showcase, Claude wrote that an invoice was "overdue na ng ilang buwan" (overdue for several months) when it was 37 days late: it is told only a rough range (here "up to three months", E1), which a stated length can overstate, and the content guard blocks numbers and dates but not words like these. (Corrected 2026-11-09: this entry first said the model is told only whether an invoice is overdue.) The drafting prompt now says so (owner: "yes, add the line to Balanse's prompt"). The content guard enforces it in code too: wording from the model that says how long ("months", "weeks", "buwan", "linggo", "matagal"…) falls back to the template; the owner may still write it (owner: "yes, add the duration words to the guard").
 
 ## 2026-10-25
 

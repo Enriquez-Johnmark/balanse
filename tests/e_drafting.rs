@@ -124,8 +124,9 @@ async fn e1_the_model_sees_only_the_six_permitted_facts(pool: PgPool) {
 
 #[sqlx::test(migrator = "balanse::MIGRATOR")]
 async fn e1_the_model_is_told_never_to_say_how_long_an_invoice_is_overdue(pool: PgPool) {
-    // It knows only whether an invoice is overdue, so any length it gave
-    // ("overdue for several months") would be a guess.
+    // It is told only a rough range (up to a week, a month, three months…),
+    // so a length it states ("overdue for several months" for 37 days) can
+    // overstate it.
     let model = FakeModel::answering(Ok(GOOD));
 
     draft_with(&pool, &model).await;

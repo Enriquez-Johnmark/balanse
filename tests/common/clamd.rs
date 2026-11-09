@@ -87,6 +87,8 @@ async fn serve(mut socket: TcpStream, behaviour: Behaviour, streams: Arc<Mutex<V
 
 /// An address where nothing listens.
 pub async fn nobody_listening() -> String {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    listener.local_addr().unwrap().to_string()
+    // Port 1 is privileged and unused, so connecting is refused. A free port
+    // borrowed and released could be handed straight to the next listener,
+    // such as a test's own fake clamd, which made a "down" scanner answer.
+    "127.0.0.1:1".to_owned()
 }

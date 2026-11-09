@@ -41,7 +41,7 @@ pub struct Config {
     pub mail: MailConfig,
     /// The address reminders come from, on Balanse's domain.
     pub mail_from_address: String,
-    /// The domain of reminders' reply addresses, `reply+CODE@domain`.
+    /// The domain of reminders' reply addresses, `CODE@domain`.
     pub reply_domain: String,
     /// The app's address, as `scheme://host[:port]`, for links in notices.
     pub public_base_url: String,

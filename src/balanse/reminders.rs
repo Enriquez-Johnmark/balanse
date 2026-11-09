@@ -43,8 +43,10 @@ pub const DRAFTS_APPEAR_AT: Time = time!(07:00);
 /// How long a Draft waits for approval before it expires (D3).
 pub const DRAFT_LIFETIME: Duration = Duration::days(3);
 
-/// Signed reply addresses, `reply+CODE@domain`, whose code names the
-/// reminder replied to (F1).
+/// Signed reply addresses, `CODE@domain`, whose code names the reminder
+/// replied to (F1). The code is 64 characters, the most a mail provider takes
+/// before the `@` (RFC 5321), so it has no prefix; addresses sent before
+/// 2026-11-10 had `reply+` and still work.
 #[derive(Clone)]
 pub struct ReplyAddresses {
     signer: Arc<Signer>,
@@ -62,7 +64,7 @@ impl ReplyAddresses {
 
     /// The reply address of `reminder`.
     pub fn address(&self, reminder: ReminderId) -> String {
-        format!("reply+{}@{}", self.signer.token(reminder.as_uuid()), self.domain)
+        format!("{}@{}", self.signer.token(reminder.as_uuid()), self.domain)
     }
 
     /// The reminder a reply address names, if its code verifies.
@@ -71,7 +73,7 @@ impl ReplyAddresses {
         if !domain.eq_ignore_ascii_case(&self.domain) {
             return None;
         }
-        let code = local.strip_prefix("reply+")?;
+        let code = local.strip_prefix("reply+").unwrap_or(local);
         self.signer.verify(code).map(ReminderId::from)
     }
 }

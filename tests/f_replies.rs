@@ -390,3 +390,17 @@ async fn f3_after_a_dispute_the_owner_records_later_reminders_say_disputed(pool:
         .unwrap();
     assert!(body.contains("(disputed)"), "{body}");
 }
+
+#[test]
+fn f1_a_reply_address_fits_the_64_character_limit_and_older_ones_still_work() {
+    let addresses = common::reply_addresses();
+    let reminder = balanse::balanse::reminders::ReminderId::new();
+    let address = addresses.address(reminder);
+    let (local, _) = address.rsplit_once('@').unwrap();
+
+    // Mail providers refuse a longer local part (RFC 5321); Resend did.
+    assert!(local.len() <= 64, "{} characters: {address}", local.len());
+    assert_eq!(addresses.reminder(&address), Some(reminder));
+    // Addresses sent before 2026-11-10 carry a `reply+` prefix.
+    assert_eq!(addresses.reminder(&format!("reply+{address}")), Some(reminder));
+}

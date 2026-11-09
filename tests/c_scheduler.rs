@@ -224,7 +224,7 @@ async fn d7_a_draft_names_the_business_and_says_it_was_sent_via_balanse(pool: Pg
     assert!(
         from == "Reyes Creative"
             && body.contains("Sent via Balanse on behalf of Reyes Creative")
-            && reply_to.is_some_and(|r| r.starts_with("reply+") && r.ends_with("@reply.balanse.test")),
+            && reply_to.is_some_and(|r| r.ends_with("@reply.balanse.test")),
         "got {from} / {body}"
     );
 }

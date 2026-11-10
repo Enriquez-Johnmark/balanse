@@ -4,6 +4,10 @@ Every owner-approved decision, newest first, with the date it was made. Decision
 
 Decisions made before this repository existed (the product family, the name, licences, the engine) are in [Kompleto's decision log](https://github.com/Enriquez-Johnmark/kompleto/blob/main/docs/decisions.md), 2026-10-23.
 
+## 2026-11-10
+
+- **UI polish with `ui-taste`:** Uizze's `ui-taste` skill (v0.3.0, Apache-2.0) is added, pinned and recorded, without the paid Uizze MCP. Every product gets an audit (look only, with real desktop and phone screenshots), then a polish pass that keeps its current look, one product at a time: Lab Report Assistant, Kompleto, Balanse, Review Triage Agent, Help Assistant, then the portfolio; each product's screenshots, video and portfolio page are remade before the next starts. Every rule that protects an acceptance criterion stays in code, and every test must still pass (owner: "yes to all").
+
 ## 2026-11-09
 
 - **Claude Sonnet words the reminders.** A blind Taglish test, as Kompleto ran it: Haiku and Sonnet each wrote 10 made-up reminders (all four steps, every overdue range) with Balanse's exact request, and a blind judge (Claude Opus, told to judge as a small Manila business chasing clients) compared each pair twice with the order swapped. Sonnet 9, Haiku 1, no ties, every verdict the same in both orders. Haiku often greeted twice ("Hi Lito," then "Hi Lito, magandang araw po!") and overused "po". Sonnet costs about US$0.003 a reminder, under US$1 a month at pilot scale (owner: "Sonnet"). The default `LLM_MODEL` is now `claude-sonnet-5-5`; the prototype is deleted.

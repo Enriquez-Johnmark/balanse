@@ -25,8 +25,11 @@ Installed in Kompleto on 2026-10-22 and copied unchanged into Balanse on 2026-10
 | `shadcn` | github.com/shadcn-ui/ui, `skills/shadcn` | `25af02b` (2026-10-22) | MIT, Copyright (c) 2023 shadcn; the licence is copied into the folder as `LICENSE.md` |
 | `frontend-design` | github.com/anthropics/skills, `skills/frontend-design` | `2c5958e` (2026-11-06) | Apache-2.0; the licence is in the folder as `LICENSE.txt` |
 | `web-design-guidelines` | `guidelines.md` is `command.md` from github.com/vercel-labs/web-interface-guidelines | `434b7f9` (2026-10-05) | MIT, Copyright (c) 2025 Vercel Labs; the licence is in the folder as `LICENSE` |
+| `tdd`, `grilling`, `grill-me`, `domain-modeling` | github.com/mattpocock/skills, `skills/engineering/tdd`, `skills/productivity/grilling`, `skills/productivity/grill-me`, `skills/engineering/domain-modeling` | `4ae2317` (2026-10-31) | MIT, Copyright (c) 2026 Matt Pocock; the licence is copied into each folder as `LICENSE` |
 
 **Added 2026-11-10:** `frontend-design` and `web-design-guidelines`, both read in full first and holding guidance only. `frontend-design` is unchanged. Upstream, `web-design-guidelines` is a short `SKILL.md` that downloads its rules from the guidelines repository's `main` branch each time it is used, so they could change unread; its `SKILL.md` here is written locally and reads the pinned copy, `guidelines.md`, instead.
+
+**The workflow skills (added 2026-11-10)**, `tdd`, `grilling` (with `grill-me`, which only calls it) and `domain-modeling`, are unchanged copies, the same as Lab Report Assistant's, read in full first; they hold guidance only and run nothing. The upstream install command (`npx skills@latest add mattpocock/skills`) was not used, since it installs whatever is newest, unread. In `tdd`, the "seams" are the acceptance criteria already agreed in the spec, so they aren't asked again; it refers to `codebase-design` and its own `code-review`, which aren't added (the built-in `code-review` skill is used).
 
 **Local changes to `shadcn/SKILL.md`** (re-apply them after any update):
 - removed `allowed-tools`, which pre-approved every `shadcn` command with any arguments, including adding code from any web address;

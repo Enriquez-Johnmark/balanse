@@ -19,7 +19,7 @@ Each gate needs the owner's explicit "yes"; an approval for one phase never carr
 
 ## Owner decisions
 
-Every decision needing the owner's judgement is put as numbered rounds of questions, each with a recommended answer, worded so "yes" accepts it. Look facts up yourself, using sub-agents for research; put only decisions to the owner. A routine "go ahead with the agreed step?" is one line.
+Every decision needing the owner's judgement goes through the `grilling` skill: numbered rounds of questions, each with a recommended answer, worded so "yes" accepts it. Look facts up yourself, using sub-agents for research; put only decisions to the owner. A routine "go ahead with the agreed step?" is one line.
 
 Record every approved decision, dated, in `docs/decisions.md`, and update the summary below.
 
@@ -85,7 +85,7 @@ Each rule protects an acceptance criterion in `docs/product/spec.md` or a produc
 The owner is the only developer: work directly on `main`. No branches, no pull requests.
 
 1. Follow the build order in `docs/architecture.md`, one milestone at a time.
-2. Test first: write one criterion's test, see it fail, then make it pass.
+2. Test first, using the `tdd` skill: write one criterion's test, see it fail, then make it pass.
 3. **Small commits.** Each commit is one behaviour (one test plus the code that makes it pass) or one small refactor or doc change, aiming for under ~150 changed lines excluding `.sqlx/`, `Cargo.lock` and vendored files. Messages are imperative and describe the behaviour. Commit messages carry no AI attribution trailers such as "Co-Authored-By" (owner's choice).
 4. Before every commit: `cargo fmt --check`, `cargo clippy --all-targets --all-features --locked -- -D warnings` and `cargo test --all-features --locked` all pass, and for changes under `web/`, `pnpm --dir web lint`, `typecheck`, `test` and `build` too. If SQL changed, run `cargo sqlx prepare -- --all-targets --all-features` and commit `.sqlx/` with it.
 5. Push to `origin main` after each commit. If CI goes red, fixing it is the next commit.

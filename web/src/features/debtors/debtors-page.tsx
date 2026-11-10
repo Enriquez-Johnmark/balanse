@@ -80,7 +80,7 @@ function DebtorList({ debtors }: { debtors: DebtorRow[] }) {
               <TableHead>Debtor</TableHead>
               <TableHead className="hidden sm:table-cell">Open invoices</TableHead>
               <TableHead className="hidden md:table-cell">Oldest due</TableHead>
-              <TableHead>Reminders</TableHead>
+              <TableHead className="hidden sm:table-cell">Reminders</TableHead>
               <TableHead className="hidden lg:table-cell">Last message</TableHead>
               <TableHead>Next step</TableHead>
             </TableRow>
@@ -93,12 +93,18 @@ function DebtorList({ debtors }: { debtors: DebtorRow[] }) {
                     {debtor.business_name}
                   </Link>
                   <div className="text-xs text-muted-foreground">{debtor.contact_name}</div>
+                  {/* On a phone the reminders' state sits under the name. */}
+                  <div className="mt-1 sm:hidden">
+                    <Badge variant={debtor.state === "active" ? "secondary" : "outline"}>
+                      {debtorStateLabel(debtor.state)}
+                    </Badge>
+                  </div>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{debtor.open_debts}</TableCell>
                 <TableCell className="hidden md:table-cell">
                   {debtor.oldest_due ? formatDate(debtor.oldest_due) : "—"}
                 </TableCell>
-                <TableCell className="whitespace-normal">
+                <TableCell className="hidden whitespace-normal sm:table-cell">
                   <Badge variant={debtor.state === "active" ? "secondary" : "outline"}>
                     {debtorStateLabel(debtor.state)}
                   </Badge>

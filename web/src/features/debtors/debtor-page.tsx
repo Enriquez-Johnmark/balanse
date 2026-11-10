@@ -102,20 +102,26 @@ function DebtsCard({ debtorId, debts }: { debtorId: string; debts: DebtRow[] }) 
                 <TableHead>Invoice</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead className="hidden sm:table-cell">Due</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="hidden sm:table-cell">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {debts.map((debt) => (
                 <TableRow key={debt.id}>
                   <TableCell className="whitespace-normal">
-                    <span className="font-medium">{debt.invoice_number}</span>
+                    <span className="font-medium whitespace-nowrap">{debt.invoice_number}</span>
                     <div className="text-xs text-muted-foreground">
                       {formatDate(debt.invoice_date)}
                     </div>
                     {debt.note ? (
                       <div className="text-xs text-muted-foreground">{debt.note}</div>
                     ) : null}
+                    {/* On a phone the status sits under the invoice, so the row fits. */}
+                    <div className="mt-1 sm:hidden">
+                      <Badge variant={debt.status === "open" ? "secondary" : "outline"}>
+                        {debtStatusLabel(debt.status)}
+                      </Badge>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {debt.amount}
@@ -124,7 +130,7 @@ function DebtsCard({ debtorId, debts }: { debtorId: string; debts: DebtRow[] }) 
                   <TableCell className="hidden sm:table-cell">
                     {formatDate(debt.due_date)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <Badge variant={debt.status === "open" ? "secondary" : "outline"}>
                       {debtStatusLabel(debt.status)}
                     </Badge>

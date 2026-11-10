@@ -28,6 +28,12 @@ Small businesses wait weeks to be paid, and chasing clients is awkward: one Vibe
 
 Balanse never touches the money, never contacts anyone but the client's own Contact, and never threatens or shames anyone. It keeps no books: no totals across clients, no aging reports, and nothing titled an invoice, receipt or statement of account (`docs/research/legal-limits.md`, R1–R18). It only follows up.
 
+## Where the data comes from
+
+- **In the demo:** a made-up design studio chasing seven made-up clients, set up through Balanse's own sign-up and spreadsheet import, from a made-up file of unpaid invoices (`web/showcase/global-setup.ts`). Every name, amount and `.example.test` address is invented.
+- **In a real business:** the owner types each Debtor and invoice in, or imports a CSV or Excel spreadsheet of who owes them, exported from their own invoicing or accounting tool or kept by hand; the import lists any row it refuses and why. The client's answers ("I've paid" with a screenshot, disputes) come from the client's own page.
+- Nothing in this repository is real customer data.
+
 ## Status
 
 | Stage | Status |

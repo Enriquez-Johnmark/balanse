@@ -53,7 +53,7 @@ Research claims carry a source (URL, publisher, date, accessed date), an evidenc
 
 ## React
 
-- Read the `vercel-react-best-practices`, `vercel-composition-patterns` and `shadcn` skills (`.claude/skills/`) before writing or reviewing React, and follow `docs/frontend.md`. Where they disagree, `docs/frontend.md` wins.
+- Read the `vercel-react-best-practices`, `vercel-composition-patterns`, `shadcn`, `frontend-design` and `web-design-guidelines` skills (`.claude/skills/`) before writing or reviewing React, and follow `docs/frontend.md`. Where they disagree, `docs/frontend.md` wins.
 - The React app only shows data and asks the Rust API to act. Every rule that protects an acceptance criterion stays in Rust.
 - Third-party skills are read in full before they're added, recorded in `skills-lock.json` and `docs/frontend.md` with source, commit and licence, and may not run unpinned commands.
 

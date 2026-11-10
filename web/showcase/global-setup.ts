@@ -1,8 +1,11 @@
+import { execFileSync } from "node:child_process"
+import { createHmac } from "node:crypto"
 import { existsSync, mkdirSync, writeFileSync } from "node:fs"
+import { resolve } from "node:path"
 
 import { chromium, type FullConfig } from "@playwright/test"
 
-import { balanse, loginLink, nextMonday } from "../e2e/support.ts"
+import { loginLink, nextMonday } from "../e2e/support.ts"
 import { BUSINESS_NAME, OWNER_EMAIL, PROOF, SESSION, WORLD, type World } from "./support.ts"
 
 /** Debtors and their unpaid invoices, imported the way an Owner would.
@@ -17,7 +20,13 @@ const DEBTS = [
   'Garcia Dental Clinic,Rina Garcia,rina@garciadental.example.test,0917 555 0105,taglish,RCS-2026-037,2026-09-18,"₱12,000.00",2026-10-18,Clinic signage',
   'Tan Prints,Ben Tan,ben@tanprints.example.test,0919 555 0106,english,RCS-2026-039,2026-09-25,"₱9,800.00",2026-10-25,Packaging labels',
   'Ocampo Bakeshop,Joy Ocampo,joy@ocampobakeshop.example.test,0917 555 0107,taglish,RCS-2026-040,2026-10-01,"₱15,000.00",2026-10-31,Menu design',
+  'Villanueva Florals,Rosa Villanueva,rosa@villanuevaflorals.example.test,0917 555 0108,english,RCS-2026-033,2026-09-08,"₱21,000.00",2026-10-08,Shop window lettering',
 ].join("\n")
+
+const BOUNCING = "Villanueva Florals"
+const BOUNCING_ADDRESS = "rosa@villanuevaflorals.example.test"
+/** The server's RESEND_WEBHOOK_SECRET; the showcase serves with this one. */
+const WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET ?? "whsec_c2hvd2Nhc2Utb25seQ=="
 
 const INSTRUCTIONS =
   "GCash 0917 555 0100 (Ana Reyes)\nBDO savings 0012 3456 7890, Reyes Creative Studio\nPlease send a screenshot after paying. Salamat po!"
@@ -28,6 +37,7 @@ const INSTRUCTIONS =
 export default async function globalSetup(config: FullConfig) {
   if (existsSync(SESSION) && existsSync(WORLD)) return
   const baseURL = config.projects[0].use.baseURL ?? "http://127.0.0.1:3000"
+  const balanse = await operator(baseURL)
   const requested = await fetch(`${baseURL}/api/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: baseURL },
@@ -113,15 +123,18 @@ export default async function globalSetup(config: FullConfig) {
       data: { sent_on: today },
     })
   )
-  const santos = drafts.find((draft) => draft.debtor_name === "Santos Trading Corp")
-  if (santos) {
-    await ok(
-      api.post("/api/drafts/approve", {
-        headers,
-        data: { drafts: [{ id: santos.id, hash: santos.hash }] },
-      })
-    )
-  }
+  // Two reminders approved and sent; one address turns out not to exist,
+  // and the provider reports the bounce through the signed delivery hook.
+  const approved = drafts.filter((draft) =>
+    ["Santos Trading Corp", BOUNCING].includes(draft.debtor_name)
+  )
+  await ok(
+    api.post("/api/drafts/approve", {
+      headers,
+      data: { drafts: approved.map((draft) => ({ id: draft.id, hash: draft.hash })) },
+    })
+  )
+  await reportBounce(baseURL, await sendApproved(BOUNCING_ADDRESS))
   writeFileSync(WORLD, JSON.stringify(world, null, 2))
   await browser.close()
 }
@@ -132,4 +145,82 @@ async function ok<T extends { ok(): boolean; status(): number; url(): string }>(
   const response = await answer
   if (!response.ok()) throw new Error(`${response.url()} answered ${response.status()}`)
   return response
+}
+
+/** Waits for the server's sender to send the approved reminders, and
+ *  returns the provider's ID for the one to `to`. Balanse sends only on
+ *  weekdays, 08:00 to 20:00 Manila time; outside them, serve under
+ *  `faketime` (docs/showcase/README.md). */
+async function sendApproved(to: string) {
+  const id = await mailpitId(to, 150)
+  if (id) return id
+  throw new Error(
+    `the reminder to ${to} wasn't sent: outside 08:00-20:00 Manila on a weekday, serve under faketime`
+  )
+}
+
+/** Mailpit's ID for the newest email to `to`: the dev mailer's provider ID. */
+async function mailpitId(to: string, attempts: number) {
+  const mailpit = process.env.MAILPIT_URL ?? "http://localhost:8025"
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const search = await fetch(
+      `${mailpit}/api/v1/search?query=${encodeURIComponent(`to:${to}`)}&limit=1`
+    )
+    const id = ((await search.json()) as { messages?: { ID: string }[] }).messages?.[0]?.ID
+    if (id) return id
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+  return undefined
+}
+
+/** Posts a permanent bounce for `emailId` to the delivery hook, signed the
+ *  way Resend (Svix) signs it. */
+async function reportBounce(baseURL: string, emailId: string) {
+  const body = JSON.stringify({
+    type: "email.bounced",
+    data: {
+      email_id: emailId,
+      bounce: { type: "Permanent", message: "550 5.1.1 The email account does not exist" },
+    },
+  })
+  const id = "msg_showcase_bounce"
+  // Signed at the server's own time, which may be shifted (see sendApproved).
+  const timestamp = Math.floor((await serverTime(baseURL)) / 1000).toString()
+  const key = Buffer.from(WEBHOOK_SECRET.replace(/^whsec_/, ""), "base64")
+  const signature = createHmac("sha256", key).update(`${id}.${timestamp}.${body}`).digest("base64")
+  const answer = await fetch(`${baseURL}/hooks/resend`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "svix-id": id,
+      "svix-timestamp": timestamp,
+      "svix-signature": `v1,${signature}`,
+    },
+    body,
+  })
+  if (answer.status !== 204) {
+    throw new Error(`the delivery hook answered ${answer.status}; serve with RESEND_WEBHOOK_SECRET`)
+  }
+}
+
+/** The `balanse` command, run at the server's time: when the server is on a
+ *  shifted clock (`faketime`, see sendApproved), so is the command, or the
+ *  login links it makes would already have expired. */
+async function operator(baseURL: string) {
+  const repository = resolve(import.meta.dirname, "../..")
+  const binary = process.env.BALANSE_BIN ?? resolve(repository, "target/debug/balanse")
+  const hours = Math.round(((await serverTime(baseURL)) - Date.now()) / 3_600_000)
+  return (...args: string[]) =>
+    hours === 0
+      ? execFileSync(binary, args, { cwd: repository, encoding: "utf8" })
+      : execFileSync("faketime", ["-f", `${hours > 0 ? "+" : ""}${hours}h`, binary, ...args], {
+          cwd: repository,
+          encoding: "utf8",
+        })
+}
+
+/** The server's clock, from its Date header. */
+async function serverTime(baseURL: string) {
+  const served = (await fetch(baseURL)).headers.get("date")
+  return served ? Date.parse(served) : Date.now()
 }

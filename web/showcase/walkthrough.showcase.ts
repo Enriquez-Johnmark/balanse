@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 
-import { test } from "@playwright/test"
+import { test, type Page } from "@playwright/test"
 
 import {
   addOverlay,
@@ -17,7 +17,7 @@ import {
 
 const size = { width: 1280, height: 720 }
 
-/** About two minutes through an Owner's week, with captions; saved as
+/** About two and a half minutes through an Owner's week, with captions; saved as
  *  docs/showcase/walkthrough.mp4. It approves drafts and confirms a
  *  payment, so it runs after the screenshots. */
 test("walkthrough", async ({ browser }, testInfo) => {
@@ -35,6 +35,15 @@ test("walkthrough", async ({ browser }, testInfo) => {
   await say(page, "The Debtors who need you come first, then the oldest overdue.")
   await pointAt(page, page.getByText("Says they paid").first())
   await say(page, "Who says they paid, who disputes, who promised: all at a glance.")
+  await pointAt(page, page.getByText("Email bounced").first())
+  await say(page, "An address that bounces stands out too, and its reminders stop at once.")
+  await press(page, page.getByRole("link", { name: "Villanueva Florals" }))
+  await page.getByText("Delivery problems").waitFor()
+  await page.getByText("Delivery problems").scrollIntoViewIfNeeded()
+  await say(
+    page,
+    "The email provider reports the bounce with its reason, so you can find the right address."
+  )
 
   // Drafts.
   await press(page, page.getByRole("link", { name: "Drafts" }))
@@ -88,6 +97,10 @@ test("walkthrough", async ({ browser }, testInfo) => {
   await page.getByRole("cell", { name: "Paid" }).waitFor()
   await pointAt(page, page.getByRole("button", { name: "Export evidence log" }))
   await say(page, "Every message and answer is kept in an evidence log you can export.")
+  const log = await page.request.get(`/api/debtors/${debtors["Cruz & Co. Events"]}/evidence-log`)
+  await showFile(page, "balanse-evidence-log.csv", await log.text())
+  await say(page, "A plain CSV: every reminder, answer and payment claim, with its date and time.")
+  await page.evaluate(() => document.getElementById("showcase-file")?.remove())
 
   await page.goto("/debtors/import")
   await page.getByRole("heading", { name: "Import a spreadsheet" }).waitFor()
@@ -104,3 +117,28 @@ test("walkthrough", async ({ browser }, testInfo) => {
   await stop(`${OUT}/walkthrough.mp4`)
   await context.close()
 })
+
+/** Shows a downloaded file's text over the page, as a viewer would. */
+async function showFile(page: Page, name: string, text: string) {
+  await page.evaluate(
+    ({ name, text }) => {
+      const sheet = document.createElement("div")
+      sheet.id = "showcase-file"
+      sheet.style.cssText =
+        "position:fixed;inset:24px 24px 120px;z-index:2147483646;background:#fff;color:#111;" +
+        "border:1px solid #d4d4d8;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.15);" +
+        "display:flex;flex-direction:column;overflow:hidden"
+      const title = document.createElement("div")
+      title.textContent = name
+      title.style.cssText =
+        "padding:10px 16px;border-bottom:1px solid #e4e4e7;font:600 14px system-ui;background:#fafafa"
+      const body = document.createElement("pre")
+      body.textContent = text
+      body.style.cssText =
+        "margin:0;padding:14px 16px;font:12px/1.6 ui-monospace,monospace;overflow:hidden;white-space:pre"
+      sheet.append(title, body)
+      document.body.append(sheet)
+    },
+    { name, text }
+  )
+}

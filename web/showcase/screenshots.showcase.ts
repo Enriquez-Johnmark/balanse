@@ -59,6 +59,10 @@ test("desktop", async ({ browser }, testInfo) => {
   await page.getByRole("button", { name: "Export evidence log" }).waitFor()
   await shot(page, "desktop-6-debtor")
 
+  await page.goto(`/debtors/${debtors["Villanueva Florals"]}`)
+  await page.getByText("Delivery problems").waitFor()
+  await shot(page, "desktop-10-bounced-address")
+
   await page.goto("/debtors/import")
   await page.getByLabel("Spreadsheet").setInputFiles({
     name: "new-clients.csv",

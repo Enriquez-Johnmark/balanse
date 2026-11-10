@@ -42,7 +42,7 @@ test("b1 a Debtor and its invoice are added, the amount kept as typed", async ({
   await expect(page.getByRole("cell", { name: /₱12,500\.00/ })).toBeVisible()
   await page.goto("/")
   const row = page.getByRole("row", { name: new RegExp(`Santos Trading ${run}`) })
-  await expect(row.getByText("Reminders on")).toBeVisible()
+  await expect(row.getByText("Reminders on").filter({ visible: true })).toBeVisible()
 })
 
 test("d2 a batch shows every draft in full before any is approved", async ({ page }) => {
@@ -72,7 +72,7 @@ test("f3 a promise pauses reminders until its date, and paid settles the invoice
   const dialog = page.getByRole("dialog", { name: "Promised to pay" })
   await dialog.getByLabel("Pay by").fill(nextMonday())
   await dialog.getByRole("button", { name: "Save promise" }).click()
-  await expect(page.getByText("Promised to pay").first()).toBeVisible()
+  await expect(page.getByText("Promised to pay").filter({ visible: true }).first()).toBeVisible()
   await expect(page.getByText(/Reminders start again after/)).toBeVisible()
 
   await page.getByRole("button", { name: "They paid" }).click()

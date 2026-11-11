@@ -56,32 +56,36 @@ export function OutcomeCard({ debtor }: { debtor: DebtorPage }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
-            <AlertDialogTrigger render={<Button disabled={busy} />}>They paid</AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Mark {debtor.business_name} as paid?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Every open invoice is settled and no more reminders are drafted for them.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() =>
-                    record.mutate(
-                      { outcome: "paid", until: null },
-                      { onSettled: () => setIsConfirming(false) }
-                    )
-                  }
-                  disabled={busy}
-                >
-                  {busy ? <Spinner data-icon="inline-start" /> : null}
-                  Mark as paid
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {/* While a payment claim waits, its own "Confirm payment" is the one
+              way to settle it (G2). */}
+          {debtor.claim ? null : (
+            <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
+              <AlertDialogTrigger render={<Button disabled={busy} />}>They paid</AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Mark {debtor.business_name} as paid?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Every open invoice is settled and no more reminders are drafted for them.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() =>
+                      record.mutate(
+                        { outcome: "paid", until: null },
+                        { onSettled: () => setIsConfirming(false) }
+                      )
+                    }
+                    disabled={busy}
+                  >
+                    {busy ? <Spinner data-icon="inline-start" /> : null}
+                    Mark as paid
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           {stopped ? null : <PromiseDialog debtorId={debtor.id} />}
           <Button
             variant="outline"

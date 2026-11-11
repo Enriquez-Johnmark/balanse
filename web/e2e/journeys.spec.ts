@@ -131,6 +131,8 @@ test("g2 a Contact says they've paid with proof, and the Owner confirms it", asy
   await page.getByRole("link", { name: `Bautista Media ${run}` }).click()
   await expect(page.getByText(/says they've paid/)).toBeVisible()
   await expect(page.getByRole("link", { name: /Download proof 1/ })).toBeVisible()
+  // One way to settle it while the claim waits: the claim's own answer.
+  await expect(page.getByRole("button", { name: "They paid" })).toHaveCount(0)
   await page.getByRole("button", { name: "Confirm payment" }).click()
   await page.getByRole("button", { name: "Confirm payment" }).last().click()
   await expect(page.getByRole("cell", { name: "Paid" })).toBeVisible()
